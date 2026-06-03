@@ -1,0 +1,105 @@
+{
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Initialize Project Infrastructure and Repository Setup",
+      "status": "pending",
+      "details": "Initialize a monorepo or separate repositories for frontend and backend. Configure ESLint, Prettier, and TypeScript. Set up Docker Compose for local PostgreSQL development. Provision an AWS S3 bucket with appropriate IAM roles for document storage. Create a basic health check endpoint.",
+      "priority": "high",
+      "description": "Set up the foundational infrastructure including the React frontend, NestJS backend, PostgreSQL database, and AWS S3 buckets for file storage.",
+      "dependencies": [],
+      "testStrategy": "Verify the backend health endpoint returns 200 OK. Ensure the frontend compiles and renders a default page. Test DB connection and S3 bucket write/read permissions using a simple backend script."
+    },
+    {
+      "id": 2,
+      "title": "Implement Authentication and Role-Based Access Control (RBAC)",
+      "status": "pending",
+      "details": "Implement signup and login API endpoints. Generate JWTs containing role claims. Create authentication guards and middleware in NestJS to protect routes based on user roles. Set up a React AuthContext to manage user sessions and route protection on the frontend.",
+      "priority": "high",
+      "description": "Create user authentication using JWT and establish role-based permissions for Vendor, Procurement Admin, Finance, and Super Admin.",
+      "dependencies": [],
+      "testStrategy": "Write unit tests for JWT generation and validation. Perform integration tests attempting to access protected routes with correct and incorrect roles. Verify unauthorized access returns standard 401/403 HTTP status codes."
+    },
+    {
+      "id": 3,
+      "title": "Design and Implement Database Schema",
+      "status": "pending",
+      "details": "Use TypeORM or Prisma to define the schema. Create the `User` table. Create the `Invoice` table with an enum for statuses (Pending OCR, In Review, Verified, Needs Revision, Rejected, Paid). Create the `Document` table linked to Invoices for storing S3 URLs. Create the `AuditLog` table. Set up and run initial migrations.",
+      "priority": "high",
+      "description": "Create PostgreSQL tables and ORM entities for Users, Invoices, Documents, and Audit Logs.",
+      "dependencies": [],
+      "testStrategy": "Run migrations on a clean test database and verify schema creation. Write automated tests for CRUD operations on Invoices and Users, ensuring foreign key constraints and cascading deletes work as expected."
+    },
+    {
+      "id": 4,
+      "title": "Develop Vendor Invoice Upload API and UI",
+      "status": "pending",
+      "details": "Frontend: Create a React form with a file dropzone accepting PDF, JPG, JPEG, and PNG files up to 10MB. Backend: Implement multipart/form-data parsing (e.g., using Multer), upload validated files to AWS S3, and save document metadata and S3 URIs to the database.",
+      "priority": "high",
+      "description": "Build the frontend form and backend endpoints to allow vendors to upload invoices and supporting documents (Invoice, Faktur Pajak, DO/BAST/SPK, PO).",
+      "dependencies": [],
+      "testStrategy": "Upload valid files and verify S3 URLs are successfully saved in the DB. Attempt to upload files larger than 10MB and unsupported formats to verify error handling and validation messages. Test concurrent uploads."
+    },
+    {
+      "id": 5,
+      "title": "Integrate AWS Textract for OCR Field Extraction",
+      "status": "pending",
+      "details": "Create an OCR service in NestJS. Trigger the AWS Textract AnalyzeDocument API when an invoice is uploaded. Map extracted key-value pairs (Vendor Name, PO Number, Invoice Number, Total, Tax) to the Invoice entity. Implement error handling for unreadable documents.",
+      "priority": "high",
+      "description": "Connect the backend to AWS Textract to automatically extract key data from uploaded invoices and map them to the database.",
+      "dependencies": [],
+      "testStrategy": "Provide a set of sample invoice PDFs and images. Assert that the OCR service correctly extracts and maps predefined fields. Mock the AWS Textract SDK for fast, reliable CI/CD pipeline tests."
+    },
+    {
+      "id": 6,
+      "title": "Build Vendor Dashboard and Status Tracking",
+      "status": "pending",
+      "details": "Fetch invoices filtered by the authenticated Vendor's ID. Display a data table with status badges. Implement a detailed view where vendors can review the OCR-extracted data against the uploaded image, make manual corrections, and formally submit the invoice for review.",
+      "priority": "medium",
+      "description": "Create the vendor-facing dashboard to view submitted invoices, their current statuses, and edit OCR-extracted data before final submission.",
+      "dependencies": [],
+      "testStrategy": "Log in as a Vendor and verify only their specific invoices are visible. Test status filtering. Verify that updating OCR data correctly updates the database and transitions the status to 'In Review'."
+    },
+    {
+      "id": 7,
+      "title": "Develop Procurement Admin Verification Workflow",
+      "status": "pending",
+      "details": "Create a split-screen UI showing the invoice document side-by-side with the extracted data. Add interactive checkboxes for Completeness, Data Validation, Item Consistency, Tax Validation, and Financial Calculations. Add 'Verify' or 'Request Revision' action buttons that update the invoice status accordingly.",
+      "priority": "high",
+      "description": "Implement the 5-section checklist (A-E) UI and backend logic for Procurement Admins to verify vendor invoices.",
+      "dependencies": [],
+      "testStrategy": "Test the side-by-side PDF/image rendering. Submit a fully approved checklist and ensure the status changes to 'Verified'. Submit a revision request and verify the status changes to 'Needs Revision' and that revision comments are saved."
+    },
+    {
+      "id": 8,
+      "title": "Implement Centralized Audit Trail Logging",
+      "status": "pending",
+      "details": "Implement an interceptor or event-driven approach in the backend to capture API actions. Log the user ID, action type, timestamp, target resource (e.g., Invoice ID), and outcome to the `AuditLog` table. Ensure logs are append-only and immutable.",
+      "priority": "medium",
+      "description": "Create a system to log all critical user actions (uploads, verifications, status changes) to ensure compliance and traceability.",
+      "dependencies": [],
+      "testStrategy": "Trigger various actions via the API (login, upload, verify, reject). Query the AuditLog table to ensure the events are recorded accurately with the correct user context and timestamps."
+    },
+    {
+      "id": 9,
+      "title": "Build Notification System (In-App and Email)",
+      "status": "pending",
+      "details": "Integrate AWS SES for sending transactional email templates (e.g., 'Invoice Needs Revision', 'Invoice Verified'). Create a `Notification` table for in-app alerts. Expose an endpoint for the frontend to fetch unread notifications and mark them as read.",
+      "priority": "medium",
+      "description": "Set up AWS SES and an in-app notification system to alert users of invoice status changes and required actions.",
+      "dependencies": [],
+      "testStrategy": "Trigger a 'Needs Revision' status change. Verify an email is sent using an AWS SES sandbox or mock. Verify the in-app notification count increments for the target vendor and clears when marked as read."
+    },
+    {
+      "id": 10,
+      "title": "Develop Finance Module and Super Admin Console",
+      "status": "pending",
+      "details": "Finance UI: Display a queue of 'Verified' invoices, allow marking them as 'Paid', and implement a CSV export feature. Super Admin UI: Build a CRUD interface for user management, role assignments, and a read-only view of the global audit trail.",
+      "priority": "medium",
+      "description": "Create the Finance dashboard for payment scheduling and the Super Admin console for system and user management.",
+      "dependencies": [],
+      "testStrategy": "Log in as a Finance user, verify the ability to change a verified invoice status to 'Paid', and successfully download the CSV export. Log in as a Super Admin, create a new Procurement Admin user, and verify the new user can successfully authenticate."
+    }
+  ],
+  "expanded_tasks": []
+}

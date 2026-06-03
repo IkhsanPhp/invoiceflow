@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Management - Finance</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .sidebar-item:hover { background-color: #f1f5f9; }
+        .active-nav { background-color: #e2e8f0; border-left: 4px solid #2563eb; }
+        .status-badge-scheduled { background-color: #fef3c7; color: #92400e; }
+        .status-badge-approved { background-color: #dcfce7; color: #166534; }
+        .status-badge-paid { background-color: #dbeafe; color: #1e40af; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white border-r border-slate-200 flex flex-col">
+        <div class="p-6 flex items-center gap-2 border-b border-slate-100">
+            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <span class="font-bold text-slate-800 text-lg tracking-tight">IMS Finance</span>
+        </div>
+        <nav class="flex-1 py-4">
+            <div class="px-4 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Main Menu</div>
+            <a href="#" class="sidebar-item flex items-center px-6 py-3 text-slate-600">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                Dashboard
+            </a>
+            <a href="#" class="active-nav sidebar-item flex items-center px-6 py-3 text-slate-900 font-medium">
+                <svg class="w-5 h-5 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                Payment Management
+            </a>
+            <a href="#" class="sidebar-item flex items-center px-6 py-3 text-slate-600">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                GL Matching
+            </a>
+            <a href="#" class="sidebar-item flex items-center px-6 py-3 text-slate-600">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Export History
+            </a>
+        </nav>
+        <div class="p-4 border-t border-slate-100 bg-slate-50">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-slate-300 rounded-full"></div>
+                <div>
+                    <p class="text-sm font-semibold text-slate-800">Finance Admin</p>
+                    <p class="text-xs text-slate-500 uppercase">Finance Dept</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <!-- Header -->
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8">
+            <h1 class="text-xl font-bold text-slate-800">Payment Management</h1>
+            <div class="flex gap-3">
+                <button class="px-4 py-2 text-sm font-medium text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50">
+                    Schedule Batch
+                </button>
+                <button class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Export Payment File
+                </button>
+            </div>
+        </header>
+
+        <!-- Scrollable Area -->
+        <div class="flex-1 overflow-y-auto p-8">
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-4 gap-6 mb-8">
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs font-semibold text-slate-500 uppercase">Ready for Payment</p>
+                    <p class="text-2xl font-bold text-slate-800 mt-1">24</p>
+                    <p class="text-xs text-green-600 mt-2 font-medium">Approved by Procurement</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs font-semibold text-slate-500 uppercase">Scheduled Today</p>
+                    <p class="text-2xl font-bold text-slate-800 mt-1">08</p>
+                    <p class="text-xs text-amber-600 mt-2 font-medium">Processing queue</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs font-semibold text-slate-500 uppercase">Total Value (MTD)</p>
+                    <p class="text-2xl font-bold text-slate-800 mt-1">$145,280</p>
+                    <p class="text-xs text-slate-500 mt-2 font-medium">152 Invoices paid</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs font-semibold text-slate-500 uppercase">GL Matching Pending</p>
+                    <p class="text-2xl font-bold text-slate-800 mt-1">05</p>
+                    <p class="text-xs text-red-600 mt-2 font-medium">Action required</p>
+                </div>
+            </div>
+
+            <!-- Table Section -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+                <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                    <div class="flex gap-4">
+                        <div class="relative">
+                            <input type="text" placeholder="Search vendor or invoice..." class="pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm w-80 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </div>
+                        <select class="border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-600 bg-white">
+                            <option>All Status</option>
+                            <option>Approved</option>
+                            <option>Scheduled</option>
+                            <option>GL Pending</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-slate-500">
+                        <span>Showing 1-10 of 24</span>
+                    </div>
+                </div>
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
+                        <tr>
+                            <th class="p-4 w-10"><input type="checkbox" class="rounded"></th>
+                            <th class="p-4">Invoice ID</th>
+                            <th class="p-4">Vendor</th>
+                            <th class="p-4 text-right">Amount</th>
+                            <th class="p-4">Due Date</th>
+                            <th class="p-4">Status</th>
+                            <th class="p-4">GL Code</th>
+                            <th class="p-4 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm text-slate-700">
+                        <tr class="border-b border-slate-50 hover:bg-slate-50">
+                            <td class="p-4"><input type="checkbox" class="rounded"></td>
+                            <td class="p-4 font-medium">INV-2023-0892</td>
+                            <td class="p-4">Global Tech Solutions</td>
+                            <td class="p-4 text-right">$12,450.00</td>
+                            <td class="p-4">Oct 24, 2023</td>
+                            <td class="p-4"><span class="px-2 py-1 rounded-full text-xs font-medium status-badge-approved">Approved</span></td>
+                            <td class="p-4 text-slate-400 italic">Not Set</td>
+                            <td class="p-4">
+                                <div class="flex justify-center gap-2">
+                                    <button class="text-blue-600 hover:underline">Schedule</button>
+                                    <span class="text-slate-300">|</span>
+                                    <button class="text-slate-600 hover:underline">Match GL</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="border-b border-slate-50 hover:bg-slate-50">
+                            <td class="p-4"><input type="checkbox" class="rounded"></td>
+                            <td class="p-4 font-medium">INV-2023-0893</td>
+                            <td class="p-4">Office Supplies Co.</td>
+                            <td class="p-4 text-right">$840.20</td>
+                            <td class="p-4">Oct 22, 2023</td>
+                            <td class="p-4"><span class="px-2 py-1 rounded-full text-xs font-medium status-badge-scheduled">Scheduled</span></td>
+                            <td class="p-4 font-mono text-xs">6100-EXP-OFF</td>
+                            <td class="p-4">
+                                <div class="flex justify-center gap-2">
+                                    <button class="text-green-600 hover:underline font-medium">Pay Now</button>
+                                    <span class="text-slate-300">|</span>
+                                    <button class="text-slate-600 hover:underline">Edit</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="border-b border-slate-50 hover:bg-slate-50">
+                            <td class="p-4"><input type="checkbox" class="rounded"></td>
+                            <td class="p-4 font-medium">INV-2023-0895</td>
+                            <td class="p-4">Apex Logistics</td>
+                            <td class="p-4 text-right">$4,200.00</td>
+                            <td class="p-4">Oct 20, 2023</td>
+                            <td class="p-4"><span class="px-2 py-1 rounded-full text-xs font-medium status-badge-paid">Paid</span></td>
+                            <td class="p-4 font-mono text-xs">5200-LOG-SHIP</td>
+                            <td class="p-4">
+                                <div class="flex justify-center gap-2">
+                                    <button class="text-slate-400 cursor-not-allowed" disabled>Receipt</button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <!-- Pagination -->
+                <div class="p-4 flex items-center justify-between border-t border-slate-100">
+                    <div class="flex gap-1">
+                        <button class="p-2 border rounded hover:bg-slate-50 text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
+                        <button class="px-3 py-1 border rounded bg-blue-50 text-blue-600 border-blue-200">1</button>
+                        <button class="px-3 py-1 border rounded hover:bg-slate-50">2</button>
+                        <button class="px-3 py-1 border rounded hover:bg-slate-50">3</button>
+                        <button class="p-2 border rounded hover:bg-slate-50 text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Right Panel - GL Matching Contextual (Hidden by Default) -->
+    <div class="w-80 bg-white border-l border-slate-200 hidden">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+            <h2 class="font-bold text-slate-800">GL Matching</h2>
+            <button class="text-slate-400 hover:text-slate-600">&times;</button>
+        </div>
+        <div class="p-6">
+            <div class="mb-6">
+                <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Invoice Total</label>
+                <p class="text-lg font-bold text-slate-900">$12,450.00</p>
+            </div>
+            <div class="mb-6">
+                <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Select GL Account</label>
+                <select class="w-full border border-slate-300 rounded-lg p-2 text-sm">
+                    <option>Select Code...</option>
+                    <option>6100-EXP-OFF (Office Expenses)</option>
+                    <option>5200-LOG-SHIP (Logistics)</option>
+                    <option>7000-MISC (Miscellaneous)</option>
+                </select>
+            </div>
+            <div class="mb-6">
+                <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Cost Center</label>
+                <select class="w-full border border-slate-300 rounded-lg p-2 text-sm">
+                    <option>Operations - JKT</option>
+                    <option>Marketing - HQ</option>
+                </select>
+            </div>
+            <button class="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">Confirm Matching</button>
+        </div>
+    </div>
+</body>
+</html>
