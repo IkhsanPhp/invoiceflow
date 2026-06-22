@@ -44,12 +44,17 @@ export async function POST(request: NextRequest) {
         // Upload using S3 client utility
         const fileUrl = await uploadFile(buffer, file.name, file.type);
 
+        const extractedData = null;
+        const ocrError = null;
+
         return NextResponse.json({
             success: true,
             fileUrl,
             fileSize: file.size,
             fileName: file.name,
-            docType: docType || "invoice"
+            docType: docType || "invoice",
+            extractedData,
+            ocrError
         });
     } catch (err: unknown) {
         console.error("Upload error:", err);

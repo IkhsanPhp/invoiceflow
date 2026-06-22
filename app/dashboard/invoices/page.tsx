@@ -143,6 +143,14 @@ export default function InvoicesMasterPage() {
         return new Date(dateObj).toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric" });
     };
 
+    const formatDueDateRange = (dateObj: Date | null | string) => {
+        if (!dateObj) return "-";
+        const date = new Date(dateObj);
+        const monthName = date.toLocaleDateString("id-ID", { month: "long" });
+        const year = date.getFullYear();
+        return `28-30 ${monthName} ${year}`;
+    };
+
     // Pagination calculations
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -169,7 +177,7 @@ export default function InvoicesMasterPage() {
     };
 
     return (
-        <div className="p-4 md:p-6 max-w-[1400px] mx-auto flex flex-1 flex-col gap-6 select-none relative">
+        <div className="p-4 md:p-6 w-full flex flex-1 flex-col gap-6 select-none relative">
             
             {/* Breadcrumbs */}
             <div className="text-xs text-slate-400 dark:text-slate-500 font-medium">
@@ -181,7 +189,7 @@ export default function InvoicesMasterPage() {
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-parkinsans tracking-tight">Master Data Invoices</h1>
                     <p className="text-sm text-slate-500 mt-1">
-                        Master Data Tagihan & Transaksi Keuangan Sistem. <span className="text-blue-600 font-bold">{invoicesList.length} total records.</span>
+                        Master Data Invoice & Transaksi Keuangan Sistem. <span className="text-blue-600 font-bold">{invoicesList.length} total records.</span>
                     </p>
                 </div>
             </div>
@@ -196,7 +204,7 @@ export default function InvoicesMasterPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm rounded-2xl p-2 relative overflow-hidden transition-all hover:shadow-md">
                     <CardHeader className="flex flex-row items-center justify-between pb-1">
-                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Volume Tagihan</span>
+                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Volume Invoice</span>
                         <div className="h-8 w-8 bg-blue-50 dark:bg-blue-950/40 rounded-lg flex items-center justify-center">
                             <TrendingUp className="h-4 w-4 text-blue-600" />
                         </div>
@@ -217,7 +225,7 @@ export default function InvoicesMasterPage() {
                         </div>
                     </CardHeader>
                     <CardContent className="pt-2">
-                        <div className="text-2xl font-extrabold text-slate-950 dark:text-white font-parkinsans">{verifiedCount} Tagihan</div>
+                        <div className="text-2xl font-extrabold text-slate-950 dark:text-white font-parkinsans">{verifiedCount} Invoice</div>
                         <p className="text-[10px] font-semibold text-slate-400 mt-2">
                             SIAP DIJADWALKAN PEMBAYARAN
                         </p>
@@ -247,7 +255,7 @@ export default function InvoicesMasterPage() {
                         </div>
                     </CardHeader>
                     <CardContent className="pt-2">
-                        <div className="text-2xl font-extrabold text-slate-950 dark:text-white font-parkinsans">{needsRevisionCount} Tagihan</div>
+                        <div className="text-2xl font-extrabold text-slate-950 dark:text-white font-parkinsans">{needsRevisionCount} Invoice</div>
                         <p className="text-[10px] font-semibold text-amber-600 mt-2">
                             MENUNGGU PERBAIKAN VENDOR
                         </p>
@@ -333,8 +341,9 @@ export default function InvoicesMasterPage() {
                                     <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider bg-slate-50/50 dark:bg-slate-900/30">
                                         <th className="px-5 py-3">No. Invoice</th>
                                         <th className="px-5 py-3">Vendor</th>
-                                        <th className="px-5 py-3">Nominal Tagihan</th>
+                                        <th className="px-5 py-3">Nominal Invoice</th>
                                         <th className="px-5 py-3">Tanggal Terbit</th>
+                                        <th className="px-5 py-3">Jatuh Tempo</th>
                                         <th className="px-5 py-3">Status</th>
                                     </tr>
                                 </thead>
@@ -345,7 +354,7 @@ export default function InvoicesMasterPage() {
                                                 <FileText className="h-4 w-4 text-slate-400" /> {inv.invoiceNumber}
                                             </td>
                                             <td className="px-5 py-3.5">
-                                                <div className="font-bold text-slate-850 dark:text-slate-205">{inv.vendorName || "Unknown"}</div>
+                                                <div className="font-bold text-slate-855 dark:text-slate-205">{inv.vendorName || "Unknown"}</div>
                                                 <div className="text-xs text-slate-400 font-mono mt-0.5">{inv.vendorEmail || "-"}</div>
                                             </td>
                                             <td className="px-5 py-3.5 font-bold text-slate-800 dark:text-slate-200">
@@ -353,6 +362,9 @@ export default function InvoicesMasterPage() {
                                             </td>
                                             <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400 font-medium">
                                                 {formatDate(inv.issueDate)}
+                                            </td>
+                                            <td className="px-5 py-3.5 font-semibold text-blue-600 dark:text-blue-400 font-mono">
+                                                {formatDueDateRange(inv.dueDate)}
                                             </td>
                                             <td className="px-5 py-3.5">
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${

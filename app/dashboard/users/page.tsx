@@ -39,7 +39,7 @@ interface UserItem {
 
 interface VendorOption {
     id: string;
-    supplier: string;
+    supplier: string | null;
     nameOfVendor: string;
     searchTerm: string | null;
     purchOrganization: string;
@@ -395,7 +395,7 @@ export default function UserManagementPage() {
     const vendorCount = users.filter(u => u.role === "vendor").length;
 
     return (
-        <div className="p-4 md:p-6 max-w-[1400px] mx-auto flex flex-1 flex-col gap-6 select-none relative">
+        <div className="p-4 md:p-6 w-full flex flex-1 flex-col gap-6 select-none relative">
             
             {/* Breadcrumbs */}
             <div className="text-xs text-slate-400 dark:text-slate-500 font-medium">
@@ -751,7 +751,7 @@ export default function UserManagementPage() {
                                                         if (!q) return true;
                                                         return (
                                                             v.nameOfVendor.toLowerCase().includes(q) ||
-                                                            v.supplier.toLowerCase().includes(q) ||
+                                                            (v.supplier || "").toLowerCase().includes(q) ||
                                                             (v.searchTerm && v.searchTerm.toLowerCase().includes(q))
                                                         );
                                                     }).length === 0 && (
@@ -763,7 +763,7 @@ export default function UserManagementPage() {
                                                             if (!q) return true;
                                                             return (
                                                                 v.nameOfVendor.toLowerCase().includes(q) ||
-                                                                v.supplier.toLowerCase().includes(q) ||
+                                                                (v.supplier || "").toLowerCase().includes(q) ||
                                                                 (v.searchTerm && v.searchTerm.toLowerCase().includes(q))
                                                             );
                                                         })
@@ -784,7 +784,7 @@ export default function UserManagementPage() {
                                                                 />
                                                                 <label htmlFor={`v-${v.id}`} className="flex flex-col cursor-pointer">
                                                                     <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{v.nameOfVendor}</span>
-                                                                    <span className="text-[10px] text-slate-500">ID: {v.supplier} | Org: {v.purchOrganization}</span>
+                                                                    <span className="text-[10px] text-slate-500">ID: {v.supplier || "Unassigned"} | Org: {v.purchOrganization}</span>
                                                                 </label>
                                                             </div>
                                                         ))

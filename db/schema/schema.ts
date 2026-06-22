@@ -11,7 +11,10 @@ export const invoices = pgTable("invoices", {
     issueDate: timestamp("issue_date"),
     dueDate: timestamp("due_date"),
     totalAmount: numeric("total_amount", { precision: 16, scale: 2 }),
-    status: text("status").default("Pending OCR").notNull(), // Pending OCR, In Review, Verified, Needs Revision, Rejected, Paid
+    status: text("status").default("Pending OCR").notNull(), // Pending OCR, In Review, Procurement Verified, Document in Transit, In Finance Verification, Needs Revision, Paid
+    grDetails: jsonb("gr_details"),
+    shippingDetails: jsonb("shipping_details"),
+    financeNotes: text("finance_notes"), // For revision notes
     createdAt: timestamp("created_at")
         .$defaultFn(() => new Date())
         .notNull(),
@@ -112,7 +115,9 @@ export const auditLogs = pgTable("audit_logs", {
 
 export const vendors = pgTable("vendors", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    supplier: text("supplier").notNull().unique(),
+    userId: text("user_id")
+        .references(() => user.id, { onDelete: "set null" }),
+    supplier: text("supplier").unique(),
     nameOfVendor: text("name_of_vendor").notNull(),
     street: text("street"),
     country: text("country"),
@@ -130,10 +135,54 @@ export const vendors = pgTable("vendors", {
     telephone: text("telephone"),
     numPurchasingOrgs: integer("num_purchasing_orgs").default(1).notNull(),
     status: text("status").default("Active").notNull(), // Active, Pending Audit, Archived
+    
+    // TMT Group SOP dynamic registration fields
+    vendorType: text("vendor_type"), // badan_usaha | perorangan
+    npwp: text("npwp"),
+    nik: text("nik"),
+    nib: text("nib"),
+    pkpStatus: text("pkp_status"),
+    classification: text("classification"),
+    flagPersonal: boolean("flag_personal").default(false).notNull(),
+    flagExEmployee: boolean("flag_ex_employee").default(false).notNull(),
+    flagPrincipal: boolean("flag_principal").default(false).notNull(),
+    province: text("province"),
+    emailCompany: text("email_company"),
+    telephoneCompany: text("telephone_company"),
+    picName: text("pic_name"),
+    picEmail: text("pic_email"),
+    picPhone: text("pic_phone"),
+    bankName: text("bank_name"),
+    bankAccountNo: text("bank_account_no"),
+    bankAccountName: text("bank_account_name"),
+    isBankAccountDiffName: boolean("is_bank_account_diff_name").default(false).notNull(),
+    isAssetOwnerDiff: boolean("is_asset_owner_diff").default(false).notNull(),
+    watchlistFlag: boolean("watchlist_flag").default(false).notNull(),
+    blacklistFlag: boolean("blacklist_flag").default(false).notNull(),
+    blacklistReason: text("blacklist_reason"),
+    verificationComments: text("verification_comments"),
+    verifiedBy: text("verified_by")
+        .references(() => user.id, { onDelete: "set null" }),
+    verifiedAt: timestamp("verified_at"),
+    
     createdAt: timestamp("created_at")
         .$defaultFn(() => new Date())
         .notNull(),
     updatedAt: timestamp("updated_at")
+        .$defaultFn(() => new Date())
+        .notNull(),
+});
+
+export const vendorDocuments = pgTable("vendor_documents", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    vendorId: text("vendor_id")
+        .notNull()
+        .references(() => vendors.id, { onDelete: "cascade" }),
+    docType: text("doc_type").notNull(), // npwp_scan, nib_scan, pkp_letter, ktp_director, akta_establishment, permit_docs, ktp_personal, non_pkp_statement, power_attorney_bank, power_attorney_asset
+    fileUrl: text("file_url").notNull(),
+    fileSize: integer("file_size").notNull(),
+    fileName: text("file_name").notNull(),
+    uploadedAt: timestamp("uploaded_at")
         .$defaultFn(() => new Date())
         .notNull(),
 });
@@ -156,3 +205,28 @@ export const userPermissions = pgTable("user_permissions", {
         .notNull(),
 });
 
+
+export const systemSettings = pgTable("system_settings", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    key: text("key").notNull().unique(),
+    value: text("value"),
+    updatedAt: timestamp("updated_at").$defaultFn(() => new Date()).notNull(),
+});
+
+export const emailTemplates = pgTable("email_templates", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    name: text("name").notNull().unique(), // e.g., vendor_registered, invoice_uploaded
+    subject: text("subject").notNull(),
+    body: text("body").notNull(), // HTML or text body with placeholders like {{vendorName}}
+    description: text("description"),
+    updatedAt: timestamp("updated_at").$defaultFn(() => new Date()).notNull(),
+});
+
+export const emailLogs = pgTable("email_logs", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    recipient: text("recipient").notNull(),
+    subject: text("subject").notNull(),
+    status: text("status").notNull(), // 'sent', 'failed'
+    errorMsg: text("error_msg"),
+    sentAt: timestamp("sent_at").$defaultFn(() => new Date()).notNull(),
+});

@@ -250,7 +250,7 @@ export default function AuditLogsMasterPage() {
     };
 
     return (
-        <div className="p-4 md:p-6 max-w-[1400px] mx-auto flex flex-1 flex-col gap-6 select-none relative">
+        <div className="p-4 md:p-6 w-full flex flex-1 flex-col gap-6 select-none relative">
             
             {/* Breadcrumbs */}
             <div className="text-xs text-slate-400 dark:text-slate-500 font-medium">

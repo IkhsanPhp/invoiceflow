@@ -16,7 +16,7 @@ import {
     Loader2, 
     ShieldAlert, 
     FileText, 
-    CheckCircle2, 
+    CheckCircle2, XCircle, 
     TrendingUp, 
     AlertTriangle,
     Search,
@@ -439,7 +439,7 @@ return (
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-parkinsans tracking-tight">Invoice Hub</h1>
                     <p className="text-sm text-slate-500 mt-1">
-                        Pusat kolaborasi input dan verifikasi audit tagihan vendor sistem. <span className="text-blue-600 font-bold">{invoices.length} total tagihan.</span>
+                        Pusat kolaborasi input dan verifikasi invoice vendor sistem. <span className="text-blue-600 font-bold">{invoices.length} total invoice.</span>
                     </p>
                 </div>
                 {(role === "admin" || (role === "vendor" && myPermissions["invoice-hub"]?.canCreate)) && (
@@ -467,7 +467,7 @@ return (
             )}
 
             {/* Scorecards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                 <Card className="border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm rounded-2xl p-2 relative overflow-hidden transition-all hover:shadow-md">
                     <CardHeader className="flex flex-row items-center justify-between pb-1">
                         <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Tagihan</span>
@@ -493,7 +493,7 @@ return (
                     <CardContent className="pt-2">
                         <div className="text-3xl font-extrabold text-slate-950 dark:text-white font-parkinsans">{inReviewCount}</div>
                         <p className="text-[10px] font-semibold text-amber-600 mt-2">
-                            MENUNGGU PROSES AUDIT
+                            MENUNGGU PROSES VERIFIKASI
                         </p>
                     </CardContent>
                 </Card>
@@ -508,7 +508,7 @@ return (
                     <CardContent className="pt-2">
                         <div className="text-3xl font-extrabold text-slate-950 dark:text-white font-parkinsans">{verifiedCount}</div>
                         <p className="text-[10px] font-semibold text-emerald-600 mt-2">
-                            VERIFIKASI LOLOS AUDIT
+                            LOLOS VERIFIKASI
                         </p>
                     </CardContent>
                 </Card>
@@ -524,6 +524,21 @@ return (
                         <div className="text-3xl font-extrabold text-slate-950 dark:text-white font-parkinsans">{revisionCount}</div>
                         <p className="text-[10px] font-semibold text-red-600 mt-2">
                             DIKEMBALIKAN KE VENDOR
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <Card className="border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm rounded-2xl p-2 relative overflow-hidden transition-all hover:shadow-md">
+                    <CardHeader className="flex flex-row items-center justify-between pb-1">
+                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Rejected</span>
+                        <div className="h-8 w-8 bg-red-50 dark:bg-red-950/40 rounded-lg flex items-center justify-center">
+                            <XCircle className="h-4 w-4 text-red-600" />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="pt-2">
+                        <div className="text-3xl font-extrabold text-slate-950 dark:text-white font-parkinsans">{invoices.filter(i => i.status === "Rejected").length}</div>
+                        <p className="text-[10px] font-semibold text-red-600 mt-2">
+                            DITOLAK / REJECTED
                         </p>
                     </CardContent>
                 </Card>
@@ -553,7 +568,7 @@ return (
                                 activeTab === "all" ? "bg-white dark:bg-slate-800 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800 dark:hover:text-white"
                             }`}
                         >
-                            Semua ({totalCount})
+                            Semua
                         </button>
                         <button
                             onClick={() => setActiveTab("in review")}
@@ -561,7 +576,7 @@ return (
                                 activeTab === "in review" ? "bg-white dark:bg-slate-800 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800 dark:hover:text-white"
                             }`}
                         >
-                            Awaiting Review ({inReviewCount})
+                            Awaiting Review
                         </button>
                         <button
                             onClick={() => setActiveTab("verified")}
@@ -569,7 +584,7 @@ return (
                                 activeTab === "verified" ? "bg-white dark:bg-slate-800 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800 dark:hover:text-white"
                             }`}
                         >
-                            Verified ({verifiedCount})
+                            Verified
                         </button>
                         <button
                             onClick={() => setActiveTab("needs revision")}
@@ -577,7 +592,7 @@ return (
                                 activeTab === "needs revision" ? "bg-white dark:bg-slate-800 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800 dark:hover:text-white"
                             }`}
                         >
-                            Needs Revision ({revisionCount})
+                            Needs Revision
                         </button>
                         <button
                             onClick={() => setActiveTab("rejected")}
@@ -585,7 +600,7 @@ return (
                                 activeTab === "rejected" ? "bg-white dark:bg-slate-800 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800 dark:hover:text-white"
                             }`}
                         >
-                            Rejected ({invoices.filter(i => i.status === "Rejected").length})
+                            Rejected
                         </button>
                         <button
                             onClick={() => setActiveTab("paid")}
@@ -593,7 +608,7 @@ return (
                                 activeTab === "paid" ? "bg-white dark:bg-slate-800 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800 dark:hover:text-white"
                             }`}
                         >
-                            Paid ({invoices.filter(i => i.status === "Paid").length})
+                            Paid
                         </button>
                     </div>
                 </div>
@@ -700,16 +715,37 @@ return (
                                             <td className="px-5 py-3.5 text-right whitespace-nowrap">
                                                 <div className="flex items-center justify-end gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
                                                     
-                                                    {/* Procurement Verifier Actions */}
-                                                    {(role === "admin" || role === "procurement") && (
-                                                        <Link href={`/dashboard/invoice-hub/verify/${inv.id}`}>
-                                                            <Button 
-                                                                className="bg-blue-600 hover:bg-blue-700 text-white font-medium text-[11px] uppercase tracking-wider h-7 px-3 rounded flex items-center gap-1.5 mr-1 cursor-pointer"
-                                                            >
-                                                                <FileCheck className="h-3.5 w-3.5" /> Proses Audit
-                                                            </Button>
-                                                        </Link>
-                                                    )}
+                                                    {/* Verifier Actions */}
+                                                    {(role === "admin" || role === "superadmin" || role === "procurement" || role === "finance") && (() => {
+                                                        if (inv.status === "Pending OCR") {
+                                                            return (
+                                                                <Button 
+                                                                    disabled
+                                                                    className="bg-purple-100 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 font-medium text-[10px] uppercase tracking-wider h-7 px-3 rounded flex items-center gap-1.5 mr-1 cursor-not-allowed border border-purple-200 dark:border-purple-900/50"
+                                                                >
+                                                                    <Loader2 className="h-3 w-3 animate-spin" /> OCR Sedang Jalan
+                                                                </Button>
+                                                            );
+                                                        }
+                                                        
+                                                        const canAudit = 
+                                                            ((role === "admin" || role === "superadmin" || role === "procurement") && ["in review", "needs finance revision"].includes(inv.status.toLowerCase())) ||
+                                                            (role === "finance" && inv.status.toLowerCase() === "procurement verified");
+                                                            
+                                                        if (canAudit) {
+                                                            return (
+                                                                <Link href={`/dashboard/invoice-hub/verify/${inv.id}`}>
+                                                                    <Button 
+                                                                        className="bg-blue-600 hover:bg-blue-700 text-white font-medium text-[11px] uppercase tracking-wider h-7 px-3 rounded flex items-center gap-1.5 mr-1 cursor-pointer"
+                                                                    >
+                                                                        <FileCheck className="h-3.5 w-3.5" /> Proses Verifikasi
+                                                                    </Button>
+                                                                </Link>
+                                                            );
+                                                        }
+                                                        
+                                                        return null;
+                                                    })()}
 
                                                     {/* General View Details */}
                                                     <Link href={`/dashboard/invoice-hub/details/${inv.id}`}>
@@ -718,15 +754,27 @@ return (
                                                         </Button>
                                                     </Link>
 
-                                                    {/* Vendor Edit Action */}
-                                                    {(role === "admin" || (role === "vendor" && myPermissions["invoice-hub"]?.canUpdate)) && (inv.status === "In Review" || inv.status === "Needs Revision") && (
-                                                        <Button size="icon" variant="ghost" onClick={() => alert("Fitur edit invoice sedang dalam pengembangan.")} className="h-7 w-7 rounded-md text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20" title="Edit Invoice">
-                                                            <Edit2 className="h-4 w-4" />
-                                                        </Button>
+                                                    {/* Vendor Revise Action */}
+                                                    {(role === "vendor" && inv.status.toLowerCase() === "needs revision") && (
+                                                        <Link href={`/dashboard/invoice-hub/revise/${inv.id}`}>
+                                                            <Button className="bg-amber-100 hover:bg-amber-200 text-amber-700 font-bold text-[11px] uppercase tracking-wider h-7 px-3 rounded flex items-center gap-1.5 mr-1 cursor-pointer border border-amber-200">
+                                                                <Edit2 className="h-3.5 w-3.5" /> Revisi
+                                                            </Button>
+                                                        </Link>
                                                     )}
 
-                                                    {/* Vendor Delete Action */}
-                                                    {(role === "admin" || (role === "vendor" && myPermissions["invoice-hub"]?.canDelete)) && (inv.status === "In Review" || inv.status === "Needs Revision") && (
+                                                    {/* Admin Edit Action */}
+                                                    {((role === "admin" || role === "superadmin" || (role !== "vendor" && myPermissions["invoice-hub"]?.canUpdate))) && (
+                                                        <Link href={`/dashboard/invoice-hub/verify/${inv.id}?mode=edit`}>
+                                                            <Button size="icon" variant="ghost" className="h-7 w-7 rounded-md text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20" title="Edit Invoice">
+                                                                <Edit2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </Link>
+                                                    )}
+
+                                                    {/* Delete Action */}
+                                                    {((role === "admin" || role === "superadmin" || myPermissions["invoice-hub"]?.canDelete) && 
+                                                      (role !== "vendor" || ["In Review", "Needs Revision", "Pending OCR"].includes(inv.status))) && (
                                                         <Button size="icon" variant="ghost" onClick={() => handleDelete(inv)} className="h-7 w-7 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20" title="Hapus Invoice">
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>

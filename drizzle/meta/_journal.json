@@ -36,6 +36,27 @@
       "when": 1780392294950,
       "tag": "0004_magenta_wolfpack",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1781682068321,
+      "tag": "0005_salty_bromley",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1781748469481,
+      "tag": "0006_quiet_landau",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1782026486180,
+      "tag": "0007_flawless_selene",
+      "breakpoints": true
     }
   ]
 }

@@ -2,36 +2,47 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "@/lib/auth-client";
-import { getVendors, createVendor, updateVendor, deleteVendor, importVendors } from "./actions";
+import { getVendors, createVendor, updateVendor, deleteVendor, importVendors, getVendorDocuments, approveVendor } from "./actions";
 import { getMyPermissions } from "@/app/dashboard/users/actions";
 import * as XLSX from "xlsx";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-    Loader2, 
-    ShieldAlert, 
-    Plus, 
-    Edit2, 
-    Trash2, 
-    Eye, 
-    Download, 
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+    Loader2,
+    ShieldAlert,
+    Plus,
+    Edit2,
+    Trash2,
+    Eye,
+    Download,
     Search,
-    MapPin,
     CheckCircle2,
     X,
     Filter,
     Activity,
     AlertTriangle,
-    CreditCard,
     DollarSign,
-    Briefcase
+    Building2,
+    Phone,
+    Mail,
+    FileText,
+    MapPin,
+    Clock,
+    Upload,
+    ChevronLeft,
+    ChevronRight,
+    MoreHorizontal,
+    TrendingUp,
+    Users,
+    Package,
+    Briefcase,
 } from "lucide-react";
 
 interface VendorItem {
     id: string;
-    supplier: string;
+    supplier: string | null;
     nameOfVendor: string;
     street: string | null;
     country: string | null;
@@ -51,7 +62,70 @@ interface VendorItem {
     status: string;
     createdAt: Date;
     updatedAt: Date;
+    vendorType: string | null;
+    npwp: string | null;
+    nik: string | null;
+    nib: string | null;
+    pkpStatus: string | null;
+    classification: string | null;
+    flagPersonal: boolean;
+    flagExEmployee: boolean;
+    flagPrincipal: boolean;
+    province: string | null;
+    emailCompany: string | null;
+    telephoneCompany: string | null;
+    picName: string | null;
+    picEmail: string | null;
+    picPhone: string | null;
+    bankName: string | null;
+    bankAccountNo: string | null;
+    bankAccountName: string | null;
+    isBankAccountDiffName: boolean;
+    isAssetOwnerDiff: boolean;
+    watchlistFlag: boolean;
+    blacklistFlag: boolean;
+    blacklistReason: string | null;
+    verificationComments: string | null;
+    verifiedBy: string | null;
+    verifiedAt: Date | null;
 }
+
+interface VendorDocument {
+    id: string;
+    vendorId: string;
+    docType: string;
+    fileUrl: string;
+    fileSize: number;
+    fileName: string;
+    uploadedAt: Date;
+}
+
+const StatusBadge = ({ status }: { status: string }) => {
+    const configs: Record<string, { label: string; className: string; dot: string }> = {
+        "Active": {
+            label: "Active",
+            className: "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800",
+            dot: "bg-emerald-500"
+        },
+        "Pending Audit": {
+            label: "Pending Audit",
+            className: "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800",
+            dot: "bg-amber-500 animate-pulse"
+        },
+        "Archived": {
+            label: "Archived",
+            className: "bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700",
+            dot: "bg-slate-400"
+        }
+    };
+    const cfg = configs[status] || configs["Archived"];
+    return (
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${cfg.className}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
+            {cfg.label}
+        </span>
+    );
+};
 
 export default function VendorsMasterPage() {
     const { data: session, isPending: sessionPending } = useSession();
@@ -61,22 +135,23 @@ export default function VendorsMasterPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-    // Active Category tab
-    const [activeTab, setActiveTab] = useState<"all" | "country" | "partners" | "archived">("all");
+    const [activeTab, setActiveTab] = useState<"all" | "active" | "pending" | "archived">("all");
 
-    // Modal forms
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [selectedVendor, setSelectedVendor] = useState<VendorItem | null>(null);
+    const [selectedVendorDocs, setSelectedVendorDocs] = useState<VendorDocument[]>([]);
+    const [isApproveOpen, setIsApproveOpen] = useState(false);
+    const [approveSupplierCode, setApproveSupplierCode] = useState("");
+    const [isApproving, setIsApproving] = useState(false);
     const [editId, setEditId] = useState<string | null>(null);
     const [vendorToDelete, setVendorToDelete] = useState<VendorItem | null>(null);
+    const [detailsTab, setDetailsTab] = useState<"info" | "sop" | "documents">("info");
 
-    // Search and filter states
     const [searchQuery, setSearchQuery] = useState("");
     const [accountGroupFilter, setAccountGroupFilter] = useState("all");
     const [currencyFilter, setCurrencyFilter] = useState("all");
 
-    // Form inputs state
     const [supplier, setSupplier] = useState("");
     const [nameOfVendor, setNameOfVendor] = useState("");
     const [street, setStreet] = useState("");
@@ -96,15 +171,13 @@ export default function VendorsMasterPage() {
     const [numPurchasingOrgs, setNumPurchasingOrgs] = useState(1);
     const [status, setStatus] = useState("Active");
 
-    // Pagination
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 8;
+    const itemsPerPage = 10;
 
-    // Excel/CSV Import states
     const [isImportOpen, setIsImportOpen] = useState(false);
     const [importFile, setImportFile] = useState<File | null>(null);
-    const [sheetNames, setSheetNames] = useState<string[]>([]);
-    const [selectedSheet, setSelectedSheet] = useState<string>("");
+    const [_sheetNames, setSheetNames] = useState<string[]>([]);
+    const [_selectedSheet, setSelectedSheet] = useState<string>("");
     const [parsedHeaders, setParsedHeaders] = useState<string[]>([]);
     const [parsedRows, setParsedRows] = useState<unknown[][]>([]);
     const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
@@ -173,10 +246,8 @@ export default function VendorsMasterPage() {
         const worksheet = workbook.Sheets[sheetName];
         const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as unknown[][];
         if (sheetData.length === 0) return;
-        
         const headers = sheetData[0].map(h => String(h || "").trim()).filter(Boolean);
         const dataRows = sheetData.slice(1);
-        
         setParsedHeaders(headers);
         setParsedRows(dataRows);
         autoDetectMapping(headers);
@@ -185,36 +256,27 @@ export default function VendorsMasterPage() {
     const handleFileChange = async (file: File) => {
         setImportFile(file);
         const fileExtension = file.name.split(".").pop()?.toLowerCase();
-        
         if (fileExtension === "csv") {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const text = e.target?.result as string;
                 const lines = text.split(/\r?\n/).filter(line => line.trim() !== "");
                 if (lines.length === 0) return;
-                
                 const parseCSVLine = (line: string) => {
                     const result = [];
                     let current = "";
                     let inQuotes = false;
                     for (let i = 0; i < line.length; i++) {
                         const char = line[i];
-                        if (char === '"') {
-                            inQuotes = !inQuotes;
-                        } else if (char === ',' && !inQuotes) {
-                            result.push(current.replace(/^"|"$/g, '').trim());
-                            current = "";
-                        } else {
-                            current += char;
-                        }
+                        if (char === '"') { inQuotes = !inQuotes; }
+                        else if (char === ',' && !inQuotes) { result.push(current.replace(/^"|"$/g, '').trim()); current = ""; }
+                        else { current += char; }
                     }
                     result.push(current.replace(/^"|"$/g, '').trim());
                     return result;
                 };
-
                 const headers = parseCSVLine(lines[0]);
                 const dataRows = lines.slice(1).map(parseCSVLine);
-                
                 setParsedHeaders(headers);
                 setParsedRows(dataRows);
                 setSheetNames(["CSV File"]);
@@ -243,20 +305,16 @@ export default function VendorsMasterPage() {
             alert("Supplier Code and Name of Vendor are required fields and must be mapped!");
             return;
         }
-
         setIsImporting(true);
         setMessage(null);
-
         try {
             const supplierIdx = parsedHeaders.indexOf(columnMapping["supplier"]);
             const nameIdx = parsedHeaders.indexOf(columnMapping["nameOfVendor"]);
-            
             if (supplierIdx === -1 || nameIdx === -1) {
                 alert("Mapped columns for Supplier Code and Name of Vendor not found in sheet.");
                 setIsImporting(false);
                 return;
             }
-
             const payloadList = parsedRows.map(row => {
                 const getRowValue = (key: string) => {
                     const colName = columnMapping[key];
@@ -265,7 +323,6 @@ export default function VendorsMasterPage() {
                     if (idx === -1) return undefined;
                     return row[idx];
                 };
-
                 return {
                     supplier: String(getRowValue("supplier") || "").trim(),
                     nameOfVendor: String(getRowValue("nameOfVendor") || "").trim(),
@@ -287,21 +344,19 @@ export default function VendorsMasterPage() {
                     status: getRowValue("status") ? String(getRowValue("status")) : "Active"
                 };
             }).filter(v => v.supplier !== "");
-
             const res = await importVendors(payloadList);
             if (res.success) {
-                setMessage({ type: "success", text: `Successfully imported ${res.count} vendors from spreadsheet!` });
+                setMessage({ type: "success", text: `Berhasil mengimpor ${res.count} vendor dari spreadsheet!` });
                 setIsImportOpen(false);
                 setImportFile(null);
                 setParsedHeaders([]);
                 setParsedRows([]);
                 fetchVendors();
             } else {
-                setMessage({ type: "error", text: res.error || "Failed to import vendors" });
+                setMessage({ type: "error", text: res.error || "Gagal mengimpor vendor" });
             }
         } catch (error: unknown) {
-            console.error("Import error:", error);
-            const errMsg = error instanceof Error ? error.message : "An unexpected error occurred during import.";
+            const errMsg = error instanceof Error ? error.message : "Terjadi kesalahan saat mengimpor.";
             setMessage({ type: "error", text: errMsg });
         } finally {
             setIsImporting(false);
@@ -314,7 +369,7 @@ export default function VendorsMasterPage() {
         if (result.success && result.vendors) {
             setVendorsList(result.vendors as VendorItem[]);
         } else {
-            setMessage({ type: "error", text: result.error || "Failed to load vendors" });
+            setMessage({ type: "error", text: result.error || "Gagal memuat vendor" });
         }
         setIsLoading(false);
     };
@@ -338,225 +393,175 @@ export default function VendorsMasterPage() {
         }
     }, [session]);
 
-    // Apply filtering whenever tab, search query, or filters change
     useEffect(() => {
         let result = [...vendorsList];
-
-        // 1. Tab category filters
-        if (activeTab === "archived") {
+        if (activeTab === "active") {
+            result = result.filter(v => v.status === "Active");
+        } else if (activeTab === "pending") {
+            result = result.filter(v => v.status === "Pending Audit");
+        } else if (activeTab === "archived") {
             result = result.filter(v => v.status === "Archived");
-        } else if (activeTab === "partners") {
-            // e.g. status is active and search term is non-empty
-            result = result.filter(v => v.status === "Active" && v.searchTerm !== "");
-        } else if (activeTab === "country") {
-            // Filter by specific countries or just sorting, let's keep all active vendors sorted/grouped by country
-            result = result.filter(v => v.status !== "Archived");
-            result.sort((a, b) => (a.country || "").localeCompare(b.country || ""));
-        } else {
-            // All active/pending vendors
-            result = result.filter(v => v.status !== "Archived");
         }
-
-        // 2. Search query filter
         if (searchQuery.trim() !== "") {
             const query = searchQuery.toLowerCase();
-            result = result.filter(v => 
-                v.supplier.toLowerCase().includes(query) ||
+            result = result.filter(v =>
+                (v.supplier && v.supplier.toLowerCase().includes(query)) ||
                 v.nameOfVendor.toLowerCase().includes(query) ||
                 (v.city && v.city.toLowerCase().includes(query)) ||
                 (v.country && v.country.toLowerCase().includes(query)) ||
                 (v.searchTerm && v.searchTerm.toLowerCase().includes(query))
             );
         }
-
-        // 3. Dropdown combobox filters
         if (accountGroupFilter !== "all") {
             result = result.filter(v => v.accountGroup === accountGroupFilter);
         }
         if (currencyFilter !== "all") {
             result = result.filter(v => v.orderCurrency === currencyFilter);
         }
-
         setFilteredVendors(result);
-        setCurrentPage(1); // Reset page on filter
+        setCurrentPage(1);
     }, [vendorsList, activeTab, searchQuery, accountGroupFilter, currencyFilter]);
 
     if (sessionPending || loadingMyPerms) {
         return (
-            <div className="flex flex-1 items-center justify-center p-8">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <div className="flex flex-1 items-center justify-center h-[60vh]">
+                <div className="flex flex-col items-center gap-3">
+                    <div className="h-10 w-10 rounded-full border-4 border-blue-600/20 border-t-blue-600 animate-spin" />
+                    <p className="text-sm text-slate-500 font-medium">Memuat data vendor...</p>
+                </div>
             </div>
         );
     }
 
-    // Dynamic Access Control Check
     const userRole = (session?.user as { role?: string })?.role;
-    const isAuthorized = userRole === "admin" || myPermissions["vendors-master"]?.canAccess;
+    const isAuthorized = userRole === "admin" ||
+        userRole === "procurement" ||
+        myPermissions["vendors-master"]?.canAccess;
+
+    const canCreate = userRole === "admin" ||
+        myPermissions["vendors-master"]?.canCreate ||
+        (userRole === "procurement" && myPermissions["vendors-master"]?.canCreate !== false);
+
+    const canUpdate = userRole === "admin" ||
+        myPermissions["vendors-master"]?.canUpdate ||
+        (userRole === "procurement" && myPermissions["vendors-master"]?.canUpdate !== false);
+
+    const canDelete = userRole === "admin" ||
+        myPermissions["vendors-master"]?.canDelete;
 
     if (!session || !isAuthorized) {
         return (
-            <div className="p-6 max-w-lg mx-auto mt-12">
-                <Card className="border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900/50">
-                    <CardHeader className="text-center">
-                        <div className="flex justify-center mb-2">
-                            <ShieldAlert className="h-12 w-12 text-red-600 dark:text-red-400" />
-                        </div>
-                        <CardTitle className="text-red-700 dark:text-red-400">Akses Ditolak (Unauthorized)</CardTitle>
-                        <CardDescription className="text-red-600/80 dark:text-red-400/80">
-                            Halaman ini hanya dapat diakses oleh aktor **Super Admin**. Peran Anda saat ini adalah **{userRole || "Guest"}**.
-                        </CardDescription>
-                    </CardHeader>
-                </Card>
+            <div className="flex items-center justify-center h-[60vh] p-6">
+                <div className="text-center max-w-sm">
+                    <div className="h-16 w-16 bg-red-100 dark:bg-red-950/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <ShieldAlert className="h-8 w-8 text-red-600" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Akses Ditolak</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                        Halaman ini hanya dapat diakses oleh <strong>Super Admin</strong> atau <strong>Procurement Admin</strong>. Peran Anda saat ini adalah <strong>{userRole || "Guest"}</strong>.
+                    </p>
+                </div>
             </div>
         );
     }
 
-    // Calculations for scorecards
     const activeSuppliersCount = vendorsList.filter(v => v.status === "Active").length;
     const pendingAuditCount = vendorsList.filter(v => v.status === "Pending Audit").length;
     const currenciesCount = new Set(vendorsList.map(v => v.orderCurrency).filter(Boolean)).size;
 
-    // Handle create modal opening
     const handleOpenCreate = () => {
         setEditId(null);
-        setSupplier("");
-        setNameOfVendor("");
-        setStreet("");
-        setCountry("");
-        setPostalCode("");
-        setCity("");
-        setAccountGroup("NCAD");
-        setSearchTerm("");
-        setPurchOrganization("2000");
-        setPurchOrgDescr("Chitra (Central)");
-        setTermsOfPayment("");
-        setIncoterms("");
-        setMinimumOrderValue("0.00");
-        setOrderCurrency("USD");
-        setSalesperson("");
-        setTelephone("");
-        setNumPurchasingOrgs(1);
-        setStatus("Active");
+        setSupplier(""); setNameOfVendor(""); setStreet(""); setCountry("");
+        setPostalCode(""); setCity(""); setAccountGroup("NCAD"); setSearchTerm("");
+        setPurchOrganization("2000"); setPurchOrgDescr("Chitra (Central)");
+        setTermsOfPayment(""); setIncoterms(""); setMinimumOrderValue("0.00");
+        setOrderCurrency("USD"); setSalesperson(""); setTelephone("");
+        setNumPurchasingOrgs(1); setStatus("Active");
         setIsFormOpen(true);
     };
 
-    // Handle edit modal opening
     const handleOpenEdit = (v: VendorItem) => {
         setEditId(v.id);
-        setSupplier(v.supplier);
-        setNameOfVendor(v.nameOfVendor);
-        setStreet(v.street || "");
-        setCountry(v.country || "");
-        setPostalCode(v.postalCode || "");
-        setCity(v.city || "");
-        setAccountGroup(v.accountGroup);
-        setSearchTerm(v.searchTerm || "");
-        setPurchOrganization(v.purchOrganization);
-        setPurchOrgDescr(v.purchOrgDescr);
-        setTermsOfPayment(v.termsOfPayment || "");
-        setIncoterms(v.incoterms || "");
-        setMinimumOrderValue(v.minimumOrderValue || "0.00");
-        setOrderCurrency(v.orderCurrency);
-        setSalesperson(v.salesperson || "");
-        setTelephone(v.telephone || "");
-        setNumPurchasingOrgs(v.numPurchasingOrgs);
-        setStatus(v.status);
+        setSupplier(v.supplier || ""); setNameOfVendor(v.nameOfVendor);
+        setStreet(v.street || ""); setCountry(v.country || "");
+        setPostalCode(v.postalCode || ""); setCity(v.city || "");
+        setAccountGroup(v.accountGroup); setSearchTerm(v.searchTerm || "");
+        setPurchOrganization(v.purchOrganization); setPurchOrgDescr(v.purchOrgDescr);
+        setTermsOfPayment(v.termsOfPayment || ""); setIncoterms(v.incoterms || "");
+        setMinimumOrderValue(v.minimumOrderValue || "0.00"); setOrderCurrency(v.orderCurrency);
+        setSalesperson(v.salesperson || ""); setTelephone(v.telephone || "");
+        setNumPurchasingOrgs(v.numPurchasingOrgs); setStatus(v.status);
         setIsFormOpen(true);
     };
 
-    // Handle view details opening
-    const handleOpenDetails = (v: VendorItem) => {
+    const handleOpenDetails = async (v: VendorItem) => {
         setSelectedVendor(v);
+        setDetailsTab("info");
         setIsDetailsOpen(true);
+        setSelectedVendorDocs([]);
+        try {
+            const res = await getVendorDocuments(v.id);
+            if (res.success && res.documents) {
+                setSelectedVendorDocs(res.documents);
+            }
+        } catch (err) {
+            console.error("Failed to fetch vendor documents:", err);
+        }
     };
 
-    // Form submission saving
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSaving(true);
         setMessage(null);
-
         const payload = {
-            supplier,
-            nameOfVendor,
-            street: street || null,
-            country: country || null,
-            postalCode: postalCode || null,
-            city: city || null,
-            accountGroup,
-            searchTerm: searchTerm || null,
-            purchOrganization,
-            purchOrgDescr,
-            termsOfPayment: termsOfPayment || null,
-            incoterms: incoterms || null,
-            minimumOrderValue: minimumOrderValue || "0.00",
-            orderCurrency,
-            salesperson: salesperson || null,
-            telephone: telephone || null,
-            numPurchasingOrgs: Number(numPurchasingOrgs),
-            status,
+            supplier, nameOfVendor, street: street || null, country: country || null,
+            postalCode: postalCode || null, city: city || null, accountGroup,
+            searchTerm: searchTerm || null, purchOrganization, purchOrgDescr,
+            termsOfPayment: termsOfPayment || null, incoterms: incoterms || null,
+            minimumOrderValue: minimumOrderValue || "0.00", orderCurrency,
+            salesperson: salesperson || null, telephone: telephone || null,
+            numPurchasingOrgs: Number(numPurchasingOrgs), status,
         };
-
         if (editId) {
             const res = await updateVendor(editId, payload);
             if (res.success) {
-                setMessage({ type: "success", text: `Successfully updated vendor: ${nameOfVendor}!` });
-                setIsFormOpen(false);
-                fetchVendors();
+                setMessage({ type: "success", text: `Vendor ${nameOfVendor} berhasil diperbarui!` });
+                setIsFormOpen(false); fetchVendors();
             } else {
-                setMessage({ type: "error", text: res.error || "Failed to update vendor" });
+                setMessage({ type: "error", text: res.error || "Gagal memperbarui vendor" });
             }
         } else {
             const res = await createVendor(payload);
             if (res.success) {
-                setMessage({ type: "success", text: `Successfully created vendor: ${nameOfVendor}!` });
-                setIsFormOpen(false);
-                fetchVendors();
+                setMessage({ type: "success", text: `Vendor ${nameOfVendor} berhasil ditambahkan!` });
+                setIsFormOpen(false); fetchVendors();
             } else {
-                setMessage({ type: "error", text: res.error || "Failed to create vendor" });
+                setMessage({ type: "error", text: res.error || "Gagal membuat vendor" });
             }
         }
         setIsSaving(false);
     };
 
-    // Handle delete vendor
-    const handleDelete = (v: VendorItem) => {
-        setVendorToDelete(v);
-    };
+    const handleDelete = (v: VendorItem) => setVendorToDelete(v);
 
     const handleConfirmDelete = async () => {
         if (!vendorToDelete) return;
         setIsLoading(true);
         const res = await deleteVendor(vendorToDelete.id);
         if (res.success) {
-            setMessage({ type: "success", text: `Successfully deleted vendor: ${vendorToDelete.nameOfVendor}!` });
+            setMessage({ type: "success", text: `Vendor ${vendorToDelete.nameOfVendor} berhasil dihapus!` });
             fetchVendors();
         } else {
-            setMessage({ type: "error", text: res.error || "Failed to delete vendor" });
+            setMessage({ type: "error", text: res.error || "Gagal menghapus vendor" });
             setIsLoading(false);
         }
         setVendorToDelete(null);
     };
 
-    // Export Excel/CSV
     const handleExportCSV = () => {
-        const headers = [
-            "Supplier", "Name of Vendor", "Street", "Country", "Postal Code", "City", 
-            "Account Group", "Search Term", "Purch. Organization", "Purch. Org. Descr.", 
-            "Terms of Payment", "Incoterms", "Minimum Order Value", "Order Currency", 
-            "Salesperson", "Telephone", "Number of Purchasing Organizations", "Status"
-        ];
-        
-        const rows = filteredVendors.map((v) => [
-            v.supplier, v.nameOfVendor, v.street || "", v.country || "", v.postalCode || "", v.city || "",
-            v.accountGroup, v.searchTerm || "", v.purchOrganization, v.purchOrgDescr,
-            v.termsOfPayment || "", v.incoterms || "", v.minimumOrderValue || "0.00", v.orderCurrency,
-            v.salesperson || "", v.telephone || "", v.numPurchasingOrgs, v.status
-        ]);
-
-        const csvContent = "data:text/csv;charset=utf-8," 
-            + [headers.join(","), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
-
+        const headers = ["Supplier", "Name of Vendor", "Street", "Country", "Postal Code", "City", "Account Group", "Search Term", "Purch. Organization", "Purch. Org. Descr.", "Terms of Payment", "Incoterms", "Minimum Order Value", "Order Currency", "Salesperson", "Telephone", "Number of Purchasing Organizations", "Status"];
+        const rows = filteredVendors.map((v) => [v.supplier, v.nameOfVendor, v.street || "", v.country || "", v.postalCode || "", v.city || "", v.accountGroup, v.searchTerm || "", v.purchOrganization, v.purchOrgDescr, v.termsOfPayment || "", v.incoterms || "", v.minimumOrderValue || "0.00", v.orderCurrency, v.salesperson || "", v.telephone || "", v.numPurchasingOrgs, v.status]);
+        const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
@@ -566,846 +571,950 @@ export default function VendorsMasterPage() {
         document.body.removeChild(link);
     };
 
-    // Pagination calculations
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const currentItems = filteredVendors.slice(indexOfFirstItem, indexOfLastItem);
     const totalPages = Math.ceil(filteredVendors.length / itemsPerPage);
-
-    const getPageNumbers = () => {
-        const pageNumbers = [];
-        const maxPageButtons = 5;
-        if (totalPages <= maxPageButtons) {
-            for (let i = 1; i <= totalPages; i++) {
-                pageNumbers.push(i);
-            }
-        } else {
-            if (currentPage <= 3) {
-                pageNumbers.push(1, 2, 3, 4, "ellipsis-right", totalPages);
-            } else if (currentPage >= totalPages - 2) {
-                pageNumbers.push(1, "ellipsis-left", totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
-            } else {
-                pageNumbers.push(1, "ellipsis-left", currentPage - 1, currentPage, currentPage + 1, "ellipsis-right", totalPages);
-            }
-        }
-        return pageNumbers;
-    };
-
-    // Dynamic unique options for dropdown filters
     const uniqueGroups = Array.from(new Set(vendorsList.map(v => v.accountGroup)));
     const uniqueCurrencies = Array.from(new Set(vendorsList.map(v => v.orderCurrency)));
 
+    const getInitials = (name: string) => {
+        return name.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase();
+    };
+
+    const getAvatarColor = (name: string) => {
+        const colors = [
+            "from-blue-500 to-blue-600",
+            "from-violet-500 to-violet-600",
+            "from-emerald-500 to-emerald-600",
+            "from-orange-500 to-orange-600",
+            "from-pink-500 to-pink-600",
+            "from-teal-500 to-teal-600",
+            "from-indigo-500 to-indigo-600",
+        ];
+        const index = name.charCodeAt(0) % colors.length;
+        return colors[index];
+    };
+
     return (
-        <div className="p-4 md:p-6 max-w-[1400px] mx-auto flex flex-1 flex-col gap-6 select-none relative">
-            
-            {/* Breadcrumbs */}
-            <div className="text-xs text-slate-400 dark:text-slate-500 font-medium">
-                Master Data / <span className="text-blue-600 font-semibold">Vendors</span>
-            </div>
+        <div className="p-5 md:p-7 w-full flex flex-1 flex-col gap-6">
 
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-parkinsans tracking-tight">Master Data Vendor</h1>
-                    <p className="text-sm text-slate-500 mt-1">
-                        Manage and audit your global supplier network. <span className="text-blue-600 font-bold">{vendorsList.length} total records.</span>
-                    </p>
-                </div>
-                <div className="flex gap-3">
-                    <Button onClick={() => setIsImportOpen(true)} variant="outline" className="gap-2 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg h-10 px-4 font-semibold text-slate-700 dark:text-slate-300">
-                        <Plus className="h-4 w-4 text-slate-400" /> Import Excel/CSV
-                    </Button>
-                    <Button onClick={handleExportCSV} variant="outline" className="gap-2 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg h-10 px-4 font-semibold text-slate-700 dark:text-slate-300">
-                        <Download className="h-4 w-4 text-slate-400" /> Export Data
-                    </Button>
-                    <Button onClick={handleOpenCreate} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold gap-2 rounded-lg h-10 px-4 shadow-sm">
-                        <Plus className="h-4 w-4" /> Add New Vendor
-                    </Button>
-                </div>
-            </div>
-
-            {/* Notification alert */}
+            {/* Toast Notification */}
             {message && (
-                <div className={`p-4 rounded-lg flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-3 duration-200 ${
-                    message.type === "success" ? "bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/20 dark:border-emerald-900/50 dark:text-emerald-400" : "bg-red-50 border border-red-200 text-red-800 dark:bg-red-950/20 dark:border-red-900/50 dark:text-red-400"
-                }`}>
-                    <div className="flex items-center gap-2.5">
-                        {message.type === "success" ? <CheckCircle2 className="h-5 w-5 text-emerald-600" /> : <ShieldAlert className="h-5 w-5 text-red-600" />}
-                        <span className="text-sm font-semibold">{message.text}</span>
+                <div className={`fixed top-5 right-5 z-[100] flex items-center gap-3 px-4 py-3.5 rounded-xl shadow-xl border animate-in slide-in-from-top-2 duration-300 max-w-sm ${message.type === "success"
+                    ? "bg-white dark:bg-slate-900 border-emerald-200 dark:border-emerald-800"
+                    : "bg-white dark:bg-slate-900 border-red-200 dark:border-red-800"
+                    }`}>
+                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${message.type === "success" ? "bg-emerald-100 dark:bg-emerald-950/50" : "bg-red-100 dark:bg-red-950/50"}`}>
+                        {message.type === "success"
+                            ? <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                            : <ShieldAlert className="h-4 w-4 text-red-600" />}
                     </div>
-                    <button onClick={() => setMessage(null)} className="opacity-70 hover:opacity-100 transition-opacity">
+                    <p className={`text-sm font-semibold flex-1 ${message.type === "success" ? "text-slate-800 dark:text-white" : "text-slate-800 dark:text-white"}`}>
+                        {message.text}
+                    </p>
+                    <button onClick={() => setMessage(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors ml-1">
                         <X className="h-4 w-4" />
                     </button>
                 </div>
             )}
 
-            {/* Scorecards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm rounded-2xl p-2 relative overflow-hidden transition-all hover:shadow-md">
-                    <CardHeader className="flex flex-row items-center justify-between pb-1">
-                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Suppliers</span>
-                        <div className="h-8 w-8 bg-blue-50 dark:bg-blue-950/40 rounded-lg flex items-center justify-center">
-                            <Activity className="h-4 w-4 text-blue-600" />
+            {/* Page Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25 shrink-0">
+                        <Building2 className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">Master Data</span>
+                            <span className="text-slate-300 dark:text-slate-600">/</span>
+                            <span className="text-xs font-semibold text-blue-600">Vendors</span>
                         </div>
-                    </CardHeader>
-                    <CardContent className="pt-2">
-                        <div className="text-3xl font-extrabold text-slate-950 dark:text-white font-parkinsans">{activeSuppliersCount.toLocaleString()}</div>
-                        <p className="text-xs font-bold text-emerald-600 mt-2 flex items-center gap-1">
-                            <span>↗ +12% this month</span>
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm rounded-2xl p-2 relative overflow-hidden transition-all hover:shadow-md">
-                    <CardHeader className="flex flex-row items-center justify-between pb-1">
-                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Avg Terms</span>
-                        <div className="h-8 w-8 bg-purple-50 dark:bg-purple-950/40 rounded-lg flex items-center justify-center">
-                            <CreditCard className="h-4 w-4 text-purple-600" />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="pt-2">
-                        <div className="text-3xl font-extrabold text-slate-950 dark:text-white font-parkinsans">Net 30</div>
-                        <p className="text-[10px] font-semibold text-slate-400 mt-2">
-                            STANDARD ACROSS 84% VENDORS
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm rounded-2xl p-2 relative overflow-hidden transition-all hover:shadow-md">
-                    <CardHeader className="flex flex-row items-center justify-between pb-1">
-                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pending Audit</span>
-                        <div className="h-8 w-8 bg-red-50 dark:bg-red-950/40 rounded-lg flex items-center justify-center">
-                            <ShieldAlert className="h-4 w-4 text-red-600" />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="pt-2">
-                        <div className="text-3xl font-extrabold text-slate-950 dark:text-white font-parkinsans">{pendingAuditCount}</div>
-                        <p className="text-[10px] font-semibold text-red-600 mt-2">
-                            Requires immediate attention
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm rounded-2xl p-2 relative overflow-hidden transition-all hover:shadow-md">
-                    <CardHeader className="flex flex-row items-center justify-between pb-1">
-                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Currencies</span>
-                        <div className="h-8 w-8 bg-emerald-50 dark:bg-emerald-950/40 rounded-lg flex items-center justify-center">
-                            <DollarSign className="h-4 w-4 text-emerald-600" />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="pt-2">
-                        <div className="text-3xl font-extrabold text-slate-950 dark:text-white font-parkinsans">{currenciesCount}</div>
-                        <p className="text-[10px] font-semibold text-slate-400 mt-2">
-                            Global trading pairs
-                        </p>
-                    </CardContent>
-                </Card>
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Vendor Master</h1>
+                    </div>
+                </div>
+                <div className="flex gap-2">
+                    {canCreate && (
+                        <Button
+                            onClick={() => setIsImportOpen(true)}
+                            variant="outline"
+                            className="gap-2 h-10 px-4 font-semibold text-sm rounded-xl border-slate-200 dark:border-slate-700 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20 dark:hover:border-blue-700 transition-all"
+                        >
+                            <Upload className="h-4 w-4" /> Import Excel
+                        </Button>
+                    )}
+                    <Button
+                        onClick={handleExportCSV}
+                        variant="outline"
+                        className="gap-2 h-10 px-4 font-semibold text-sm rounded-xl border-slate-200 dark:border-slate-700 hover:border-slate-300 transition-all"
+                    >
+                        <Download className="h-4 w-4" /> Export
+                    </Button>
+                    {canCreate && (
+                        <Button
+                            onClick={handleOpenCreate}
+                            className="gap-2 h-10 px-4 font-semibold text-sm rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 transition-all"
+                        >
+                            <Plus className="h-4 w-4" /> Tambah Vendor
+                        </Button>
+                    )}
+                </div>
             </div>
 
-            {/* Controls panel: Filter Tabs, Search and Multi-select filtering */}
-            <div className="flex flex-col gap-4 bg-white dark:bg-slate-950 p-4 border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-sm">
-                
-                {/* Search query input */}
-                <div className="relative w-full">
-                    <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
-                    <Input
-                        placeholder="Search vendors by supplier code, name, city, country, or keyword..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10 bg-slate-50/50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl text-sm h-10 w-full"
-                    />
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 hover:shadow-md transition-all duration-200">
+                    <div className="flex items-start justify-between mb-3">
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Vendor</p>
+                        <div className="h-8 w-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center">
+                            <Users className="h-4 w-4 text-blue-600" />
+                        </div>
+                    </div>
+                    <p className="text-3xl font-bold text-slate-900 dark:text-white">{vendorsList.length}</p>
+                    <p className="text-xs text-slate-400 mt-2">Terdaftar dalam sistem</p>
                 </div>
 
-                <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between border-t pt-3">
-                    
-                    {/* Category tabs */}
-                    <div className="flex flex-wrap gap-1 bg-slate-50 dark:bg-slate-900 p-1 rounded-xl">
-                        <button
-                            onClick={() => setActiveTab("all")}
-                            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                                activeTab === "all" ? "bg-white dark:bg-slate-800 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800 dark:hover:text-white"
-                            }`}
-                        >
-                            All Vendors
-                        </button>
-                        <button
-                            onClick={() => setActiveTab("country")}
-                            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                                activeTab === "country" ? "bg-white dark:bg-slate-800 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800 dark:hover:text-white"
-                            }`}
-                        >
-                            By Country
-                        </button>
-                        <button
-                            onClick={() => setActiveTab("partners")}
-                            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                                activeTab === "partners" ? "bg-white dark:bg-slate-800 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800 dark:hover:text-white"
-                            }`}
-                        >
-                            Strategic Partners
-                        </button>
-                        <button
-                            onClick={() => setActiveTab("archived")}
-                            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                                activeTab === "archived" ? "bg-white dark:bg-slate-800 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800 dark:hover:text-white"
-                            }`}
-                        >
-                            Archived
-                        </button>
+                <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 hover:shadow-md transition-all duration-200">
+                    <div className="flex items-start justify-between mb-3">
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Aktif</p>
+                        <div className="h-8 w-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center">
+                            <Activity className="h-4 w-4 text-emerald-600" />
+                        </div>
+                    </div>
+                    <p className="text-3xl font-bold text-slate-900 dark:text-white">{activeSuppliersCount}</p>
+                    <div className="flex items-center gap-1 mt-2">
+                        <TrendingUp className="h-3 w-3 text-emerald-500" />
+                        <p className="text-xs text-emerald-600 font-semibold">Supplier aktif</p>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 hover:shadow-md transition-all duration-200 relative overflow-hidden">
+                    <div className="flex items-start justify-between mb-3">
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pending Audit</p>
+                        <div className="h-8 w-8 rounded-xl bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center">
+                            <Clock className="h-4 w-4 text-amber-600" />
+                        </div>
+                    </div>
+                    <p className="text-3xl font-bold text-slate-900 dark:text-white">{pendingAuditCount}</p>
+                    {pendingAuditCount > 0 && (
+                        <p className="text-xs text-amber-600 dark:text-amber-500 font-semibold mt-2">Perlu verifikasi segera</p>
+                    )}
+                    {pendingAuditCount === 0 && (
+                        <p className="text-xs text-slate-400 mt-2">Semua sudah terverifikasi</p>
+                    )}
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 hover:shadow-md transition-all duration-200">
+                    <div className="flex items-start justify-between mb-3">
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Mata Uang</p>
+                        <div className="h-8 w-8 rounded-xl bg-purple-50 dark:bg-purple-950/40 flex items-center justify-center">
+                            <DollarSign className="h-4 w-4 text-purple-600" />
+                        </div>
+                    </div>
+                    <p className="text-3xl font-bold text-slate-900 dark:text-white">{currenciesCount}</p>
+                    <p className="text-xs text-slate-400 mt-2">Pasangan perdagangan global</p>
+                </div>
+            </div>
+
+            {/* Controls Panel */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden">
+                {/* Search */}
+                <div className="p-4 border-b border-slate-100 dark:border-slate-800">
+                    <div className="relative">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <Input
+                            placeholder="Cari vendor berdasarkan kode, nama, kota, negara..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-10 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 rounded-xl text-sm h-10 w-full focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:border-blue-400"
+                        />
+                    </div>
+                </div>
+
+                {/* Tabs + Filters */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3">
+                    {/* Tab Pills */}
+                    <div className="flex gap-1">
+                        {[
+                            { key: "all", label: "Semua", count: vendorsList.length },
+                            { key: "active", label: "Aktif", count: activeSuppliersCount },
+                            { key: "pending", label: "Pending", count: pendingAuditCount },
+                            { key: "archived", label: "Diarsipkan", count: vendorsList.filter(v => v.status === "Archived").length },
+                        ].map(tab => (
+                            <button
+                                key={tab.key}
+                                onClick={() => setActiveTab(tab.key as "all" | "active" | "pending" | "archived")}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === tab.key
+                                    ? "bg-blue-600 text-white shadow-sm"
+                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                                    }`}
+                            >
+                                {tab.label}
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${activeTab === tab.key ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"}`}>
+                                    {tab.count}
+                                </span>
+                            </button>
+                        ))}
                     </div>
 
-                    {/* Filter drop boxes */}
-                    <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider shrink-0 flex items-center gap-1.5">
-                            <Filter className="h-3 w-3" /> Filter by:
-                        </span>
-                        
-                        {/* Account Group filter dropdown */}
+                    {/* Filters */}
+                    <div className="flex items-center gap-2">
+                        <Filter className="h-3.5 w-3.5 text-slate-400" />
                         <select
                             value={accountGroupFilter}
                             onChange={(e) => setAccountGroupFilter(e.target.value)}
-                            className="h-9 rounded-lg border border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-800 px-3 py-1 text-xs font-semibold focus-visible:outline-none w-32"
+                            className="h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-semibold focus-visible:outline-none text-slate-700 dark:text-slate-300"
                         >
-                            <option value="all">Account Group</option>
+                            <option value="all">Semua Grup</option>
                             {uniqueGroups.map((grp) => (
                                 <option key={grp} value={grp}>{grp}</option>
                             ))}
                         </select>
-
-                        {/* Order Currency filter dropdown */}
                         <select
                             value={currencyFilter}
                             onChange={(e) => setCurrencyFilter(e.target.value)}
-                            className="h-9 rounded-lg border border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-800 px-3 py-1 text-xs font-semibold focus-visible:outline-none w-32"
+                            className="h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-semibold focus-visible:outline-none text-slate-700 dark:text-slate-300"
                         >
-                            <option value="all">Currency</option>
+                            <option value="all">Semua Mata Uang</option>
                             {uniqueCurrencies.map((cur) => (
                                 <option key={cur} value={cur}>{cur}</option>
                             ))}
                         </select>
                     </div>
                 </div>
-            </div>
 
-            {/* List Table Card */}
-            <Card className="border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm rounded-2xl overflow-hidden transition-all">
-                <CardContent className="p-0">
+                {/* Table */}
+                <div className="overflow-x-auto">
                     {isLoading ? (
-                        <div className="flex justify-center py-16">
-                            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                        <div className="flex flex-col items-center justify-center py-20 gap-3">
+                            <div className="h-10 w-10 rounded-full border-4 border-blue-600/20 border-t-blue-600 animate-spin" />
+                            <p className="text-sm text-slate-400">Memuat data vendor...</p>
                         </div>
                     ) : filteredVendors.length === 0 ? (
-                        <div className="text-center py-16 text-slate-400 font-medium">No vendors found matching criteria.</div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left border-collapse">
-                                <thead>
-                                    <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider bg-slate-50/50 dark:bg-slate-900/30">
-                                        <th className="px-5 py-3">Supplier</th>
-                                        <th className="px-5 py-3">Name of Vendor</th>
-                                        <th className="px-5 py-3">Street</th>
-                                        <th className="px-5 py-3">Country</th>
-                                        <th className="px-5 py-3">Postal Code</th>
-                                        <th className="px-5 py-3">City</th>
-                                        <th className="px-5 py-3 text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 dark:divide-slate-900">
-                                    {currentItems.map((v) => (
-                                        <tr key={v.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors group">
-                                            <td className="px-5 py-3.5">
-                                                <button 
-                                                    onClick={() => handleOpenDetails(v)}
-                                                    className="font-bold text-blue-600 hover:text-blue-700 hover:underline text-left font-mono"
-                                                >
-                                                    {v.supplier}
-                                                </button>
-                                            </td>
-                                            <td className="px-5 py-3.5">
-                                                <div className="font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 transition-colors">{v.nameOfVendor}</div>
-                                                {v.searchTerm && (
-                                                    <div className="text-[10px] text-slate-400 mt-0.5">Search term: {v.searchTerm}</div>
-                                                )}
-                                            </td>
-                                            <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400 truncate max-w-[180px]" title={v.street || ""}>
-                                                {v.street || "-"}
-                                            </td>
-                                            <td className="px-5 py-3.5 font-bold text-slate-700 dark:text-slate-300">
-                                                {v.country || "-"}
-                                            </td>
-                                            <td className="px-5 py-3.5 font-medium text-slate-500 dark:text-slate-400 font-mono">
-                                                {v.postalCode || "-"}
-                                            </td>
-                                            <td className="px-5 py-3.5">
-                                                <div className="font-semibold text-slate-800 dark:text-slate-200">{v.city || "-"}</div>
-                                            </td>
-                                            <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                                                <div className="flex justify-end gap-2.5 opacity-80 group-hover:opacity-100 transition-opacity">
-                                                    <Button size="icon" variant="ghost" onClick={() => handleOpenDetails(v)} className="h-8 w-8 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20">
-                                                        <Eye className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button size="icon" variant="ghost" onClick={() => handleOpenEdit(v)} className="h-8 w-8 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20">
-                                                        <Edit2 className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button size="icon" variant="ghost" onClick={() => handleDelete(v)} className="h-8 w-8 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20">
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-2">
-                    <div className="text-xs font-semibold text-slate-400">
-                        Showing <span className="text-slate-700 dark:text-slate-300">{indexOfFirstItem + 1}</span> to <span className="text-slate-700 dark:text-slate-300">{Math.min(indexOfLastItem, filteredVendors.length)}</span> of <span className="text-slate-700 dark:text-slate-300">{filteredVendors.length}</span> vendors
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                        <Button 
-                            disabled={currentPage === 1} 
-                            onClick={() => setCurrentPage(currentPage - 1)}
-                            variant="outline" 
-                            size="sm"
-                            className="h-8 w-8 p-0 rounded-lg"
-                        >
-                            &lt;
-                        </Button>
-                        {getPageNumbers().map((pageNum, idx) => {
-                            if (pageNum === "ellipsis-left" || pageNum === "ellipsis-right") {
-                                return (
-                                    <span key={`ellipsis-${idx}`} className="text-slate-400 dark:text-slate-500 text-xs px-1 select-none font-bold">
-                                        ...
-                                    </span>
-                                );
-                            }
-                            const pageVal = pageNum as number;
-                            return (
-                                <Button
-                                    key={pageVal}
-                                    onClick={() => setCurrentPage(pageVal)}
-                                    variant={currentPage === pageVal ? "default" : "outline"}
-                                    size="sm"
-                                    className={`h-8 w-8 p-0 rounded-lg text-xs font-bold ${currentPage === pageVal ? "bg-blue-600 text-white" : ""}`}
-                                >
-                                    {pageVal}
+                        <div className="flex flex-col items-center justify-center py-20 gap-3">
+                            <div className="h-16 w-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center">
+                                <Package className="h-8 w-8 text-slate-400" />
+                            </div>
+                            <p className="text-base font-semibold text-slate-600 dark:text-slate-400">Tidak ada vendor ditemukan</p>
+                            <p className="text-sm text-slate-400">Coba ubah filter atau tambahkan vendor baru</p>
+                            {canCreate && (
+                                <Button onClick={handleOpenCreate} className="mt-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-9 px-4 text-sm font-semibold gap-2">
+                                    <Plus className="h-4 w-4" /> Tambah Vendor Pertama
                                 </Button>
-                            );
-                        })}
-                        <Button 
-                            disabled={currentPage === totalPages} 
-                            onClick={() => setCurrentPage(currentPage + 1)}
-                            variant="outline" 
-                            size="sm"
-                            className="h-8 w-8 p-0 rounded-lg"
-                        >
-                            &gt;
-                        </Button>
-                    </div>
+                            )}
+                        </div>
+                    ) : (
+                        <table className="w-full text-sm text-left">
+                            <thead>
+                                <tr className="border-y border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+                                    <th className="px-5 py-3 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Vendor</th>
+                                    <th className="px-5 py-3 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Kode Supplier</th>
+                                    <th className="px-5 py-3 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Lokasi</th>
+                                    <th className="px-5 py-3 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Mata Uang</th>
+                                    <th className="px-5 py-3 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-5 py-3 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {currentItems.map((v) => (
+                                    <tr key={v.id} className="border-b border-slate-100 dark:border-slate-800/70 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors group">
+                                        {/* Vendor Name + Avatar */}
+                                        <td className="px-5 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`h-9 w-9 rounded-xl bg-gradient-to-br ${getAvatarColor(v.nameOfVendor)} flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-sm`}>
+                                                    {getInitials(v.nameOfVendor)}
+                                                </div>
+                                                <div>
+                                                    <button
+                                                        onClick={() => handleOpenDetails(v)}
+                                                        className="font-semibold text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-left line-clamp-1"
+                                                    >
+                                                        {v.nameOfVendor}
+                                                    </button>
+                                                    {v.searchTerm && (
+                                                        <p className="text-[11px] text-slate-400 mt-0.5">{v.searchTerm}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        {/* Supplier Code */}
+                                        <td className="px-5 py-4">
+                                            {v.supplier ? (
+                                                <span className="font-mono font-semibold text-slate-700 dark:text-slate-300 text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg">
+                                                    {v.supplier}
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">
+                                                    Belum Ditugaskan
+                                                </span>
+                                            )}
+                                        </td>
+
+                                        {/* Location */}
+                                        <td className="px-5 py-4">
+                                            {(v.city || v.country) ? (
+                                                <div className="flex items-center gap-1.5">
+                                                    <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                                    <span className="text-slate-600 dark:text-slate-400 text-xs">
+                                                        {[v.city, v.country].filter(Boolean).join(", ")}
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
+                                            )}
+                                        </td>
+
+                                        {/* Currency */}
+                                        <td className="px-5 py-4">
+                                            <span className="text-xs font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded font-mono">
+                                                {v.orderCurrency}
+                                            </span>
+                                        </td>
+
+                                        {/* Status */}
+                                        <td className="px-5 py-4">
+                                            <StatusBadge status={v.status} />
+                                        </td>
+
+                                        {/* Actions */}
+                                        <td className="px-5 py-4">
+                                            <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={() => handleOpenDetails(v)}
+                                                    className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
+                                                    title="Lihat Detail"
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </button>
+                                                {canUpdate && (
+                                                    <button
+                                                        onClick={() => handleOpenEdit(v)}
+                                                        className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors"
+                                                        title="Edit"
+                                                    >
+                                                        <Edit2 className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                                {canDelete && (
+                                                    <button
+                                                        onClick={() => handleDelete(v)}
+                                                        className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                                                        title="Hapus"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
-            )}
 
-            {/* Floating Action Button */}
-            <button 
-                onClick={handleOpenCreate}
-                className="fixed bottom-6 right-6 h-12 w-12 rounded-full bg-slate-900 text-white hover:bg-slate-800 hover:scale-105 active:scale-95 shadow-xl flex items-center justify-center z-45 transition-all"
-                title="Add New Vendor"
-            >
-                <Plus className="h-6 w-6 font-bold" />
-            </button>
-
-            {/* Dialog Form Modal (Create and Edit) */}
-            {isFormOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm transition-opacity duration-300 overflow-y-auto">
-                    <Card className="w-full max-w-3xl bg-white dark:bg-slate-950 shadow-2xl border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden my-8">
-                        <CardHeader className="relative border-b pb-4 bg-slate-50/50 dark:bg-slate-900/50">
-                            <CardTitle className="text-xl font-bold font-parkinsans text-slate-900 dark:text-white flex items-center gap-2">
-                                <Briefcase className="h-5 w-5 text-blue-600" /> {editId ? "Update Vendor Master" : "Register New Vendor"}
-                            </CardTitle>
-                            <CardDescription>
-                                Lengkapi rincian master vendor berdasarkan catatan ledger sistem finansial global.
-                            </CardDescription>
-                            <button onClick={() => setIsFormOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
-                                <X className="h-5 w-5" />
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
+                        <p className="text-xs text-slate-500">
+                            Menampilkan <span className="font-semibold text-slate-700 dark:text-slate-300">{indexOfFirstItem + 1}–{Math.min(indexOfLastItem, filteredVendors.length)}</span> dari <span className="font-semibold text-slate-700 dark:text-slate-300">{filteredVendors.length}</span> vendor
+                        </p>
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="h-8 w-8 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                            >
+                                <ChevronLeft className="h-4 w-4" />
                             </button>
-                        </CardHeader>
+                            {Array.from({ length: totalPages }, (_, i) => i + 1)
+                                .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                                .reduce<(number | "...")[]>((acc, p, i, arr) => {
+                                    if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push("...");
+                                    acc.push(p);
+                                    return acc;
+                                }, [])
+                                .map((item, idx) =>
+                                    item === "..." ? (
+                                        <span key={`e-${idx}`} className="px-1 text-slate-400 text-xs">
+                                            <MoreHorizontal className="h-4 w-4" />
+                                        </span>
+                                    ) : (
+                                        <button
+                                            key={item}
+                                            onClick={() => setCurrentPage(item as number)}
+                                            className={`h-8 w-8 rounded-lg text-xs font-semibold transition-all ${currentPage === item
+                                                ? "bg-blue-600 text-white shadow-sm"
+                                                : "border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                                }`}
+                                        >
+                                            {item}
+                                        </button>
+                                    )
+                                )}
+                            <button
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="h-8 w-8 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* ============================================ */}
+            {/* MODAL: CREATE / EDIT VENDOR */}
+            {/* ============================================ */}
+            {isFormOpen && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center p-4 z-50 overflow-y-auto">
+                    <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 my-8 animate-in zoom-in-95 duration-200">
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
+                            <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md">
+                                    <Briefcase className="h-5 w-5 text-white" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-bold text-slate-900 dark:text-white">{editId ? "Edit Vendor" : "Tambah Vendor Baru"}</h2>
+                                    <p className="text-xs text-slate-400">Isi data master vendor sesuai catatan finansial global</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsFormOpen(false)} className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+
+                        {/* Form */}
                         <form onSubmit={handleSave}>
-                            <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto scrollbar-thin">
-                                
-                                {/* Supplier Code */}
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="supplier" className="text-xs font-bold text-slate-400 uppercase">Supplier Code *</Label>
-                                    <Input id="supplier" type="text" value={supplier} onChange={(e) => setSupplier(e.target.value)} required placeholder="e.g. 2000000" disabled={isSaving} className="font-mono h-10 rounded-lg bg-slate-50/50 dark:bg-slate-900" />
-                                </div>
+                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[65vh] overflow-y-auto">
+                                {[
+                                    { id: "supplier", label: "Kode Supplier *", value: supplier, setter: setSupplier, placeholder: "e.g. 2000000", required: true, mono: true },
+                                    { id: "nameOfVendor", label: "Nama Vendor *", value: nameOfVendor, setter: setNameOfVendor, placeholder: "PT REMA TIP TOP INDONESIA", required: true },
+                                ].map(f => (
+                                    <div key={f.id} className="space-y-1.5">
+                                        <Label htmlFor={f.id} className="text-xs font-semibold text-slate-500 dark:text-slate-400">{f.label}</Label>
+                                        <Input id={f.id} value={f.value} onChange={e => f.setter(e.target.value)} required={f.required} placeholder={f.placeholder} disabled={isSaving} className={`h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 ${f.mono ? "font-mono" : ""}`} />
+                                    </div>
+                                ))}
 
-                                {/* Name of Vendor */}
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="nameOfVendor" className="text-xs font-bold text-slate-400 uppercase">Name of Vendor *</Label>
-                                    <Input id="nameOfVendor" type="text" value={nameOfVendor} onChange={(e) => setNameOfVendor(e.target.value)} required placeholder="PT REMA TIP TOP INDONESIA" disabled={isSaving} className="h-10 rounded-lg bg-slate-50/50 dark:bg-slate-900" />
-                                </div>
-
-                                {/* Street */}
                                 <div className="space-y-1.5 md:col-span-2">
-                                    <Label htmlFor="street" className="text-xs font-bold text-slate-400 uppercase">Street Address</Label>
-                                    <Input id="street" type="text" value={street} onChange={(e) => setStreet(e.target.value)} placeholder="Jl. Taman Sari Raya No. 56 56MD" disabled={isSaving} className="h-10 rounded-lg bg-slate-50/50 dark:bg-slate-900" />
+                                    <Label htmlFor="street" className="text-xs font-semibold text-slate-500 dark:text-slate-400">Alamat Jalan</Label>
+                                    <Input id="street" value={street} onChange={e => setStreet(e.target.value)} placeholder="Jl. Taman Sari Raya No. 56" disabled={isSaving} className="h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
                                 </div>
 
-                                {/* City */}
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="city" className="text-xs font-bold text-slate-400 uppercase">City</Label>
-                                    <Input id="city" type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Jakarta Barat" disabled={isSaving} className="h-10 rounded-lg bg-slate-50/50 dark:bg-slate-900" />
+                                    <Label htmlFor="city" className="text-xs font-semibold text-slate-500 dark:text-slate-400">Kota</Label>
+                                    <Input id="city" value={city} onChange={e => setCity(e.target.value)} placeholder="Jakarta Barat" disabled={isSaving} className="h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
                                 </div>
-
-                                {/* Country */}
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="country" className="text-xs font-bold text-slate-400 uppercase">Country Code</Label>
-                                    <Input id="country" type="text" value={country} onChange={(e) => setCountry(e.target.value)} placeholder="ID" maxLength={5} disabled={isSaving} className="h-10 rounded-lg bg-slate-50/50 dark:bg-slate-900 font-semibold" />
+                                    <Label htmlFor="country" className="text-xs font-semibold text-slate-500 dark:text-slate-400">Kode Negara</Label>
+                                    <Input id="country" value={country} onChange={e => setCountry(e.target.value)} placeholder="ID" maxLength={5} disabled={isSaving} className="h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 font-mono" />
                                 </div>
-
-                                {/* Postal Code */}
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="postalCode" className="text-xs font-bold text-slate-400 uppercase">Postal Code</Label>
-                                    <Input id="postalCode" type="text" value={postalCode} onChange={(e) => setPostalCode(e.target.value)} placeholder="11150" disabled={isSaving} className="font-mono h-10 rounded-lg bg-slate-50/50 dark:bg-slate-900" />
+                                    <Label htmlFor="postalCode" className="text-xs font-semibold text-slate-500 dark:text-slate-400">Kode Pos</Label>
+                                    <Input id="postalCode" value={postalCode} onChange={e => setPostalCode(e.target.value)} placeholder="11150" disabled={isSaving} className="h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 font-mono" />
                                 </div>
-
-                                {/* Account Group */}
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="accountGroup" className="text-xs font-bold text-slate-400 uppercase">Account Group</Label>
-                                    <Input id="accountGroup" type="text" value={accountGroup} onChange={(e) => setAccountGroup(e.target.value)} required placeholder="NCAD" disabled={isSaving} className="h-10 rounded-lg bg-slate-50/50 dark:bg-slate-900" />
+                                    <Label htmlFor="accountGroup" className="text-xs font-semibold text-slate-500 dark:text-slate-400">Account Group</Label>
+                                    <Input id="accountGroup" value={accountGroup} onChange={e => setAccountGroup(e.target.value)} required placeholder="NCAD" disabled={isSaving} className="h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
                                 </div>
-
-                                {/* Search Term */}
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="searchTerm" className="text-xs font-bold text-slate-400 uppercase">Search Term</Label>
-                                    <Input id="searchTerm" type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="REMA" disabled={isSaving} className="h-10 rounded-lg bg-slate-50/50 dark:bg-slate-900" />
+                                    <Label htmlFor="orderCurrency" className="text-xs font-semibold text-slate-500 dark:text-slate-400">Mata Uang</Label>
+                                    <Input id="orderCurrency" value={orderCurrency} onChange={e => setOrderCurrency(e.target.value)} required placeholder="USD" disabled={isSaving} className="h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 font-mono" />
                                 </div>
-
-                                {/* Order Currency */}
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="orderCurrency" className="text-xs font-bold text-slate-400 uppercase">Order Currency</Label>
-                                    <Input id="orderCurrency" type="text" value={orderCurrency} onChange={(e) => setOrderCurrency(e.target.value)} required placeholder="USD" disabled={isSaving} className="h-10 rounded-lg bg-slate-50/50 dark:bg-slate-900" />
+                                    <Label htmlFor="termsOfPayment" className="text-xs font-semibold text-slate-500 dark:text-slate-400">Terms of Payment</Label>
+                                    <Input id="termsOfPayment" value={termsOfPayment} onChange={e => setTermsOfPayment(e.target.value)} placeholder="0015" disabled={isSaving} className="h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 font-mono" />
                                 </div>
-
-                                {/* Terms of Payment */}
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="termsOfPayment" className="text-xs font-bold text-slate-400 uppercase">Terms of Payment</Label>
-                                    <Input id="termsOfPayment" type="text" value={termsOfPayment} onChange={(e) => setTermsOfPayment(e.target.value)} placeholder="0015" disabled={isSaving} className="h-10 rounded-lg bg-slate-50/50 dark:bg-slate-900 font-mono" />
+                                    <Label htmlFor="incoterms" className="text-xs font-semibold text-slate-500 dark:text-slate-400">Incoterms</Label>
+                                    <Input id="incoterms" value={incoterms} onChange={e => setIncoterms(e.target.value)} placeholder="CFR" disabled={isSaving} className="h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
                                 </div>
-
-                                {/* Incoterms */}
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="incoterms" className="text-xs font-bold text-slate-400 uppercase">Incoterms</Label>
-                                    <Input id="incoterms" type="text" value={incoterms} onChange={(e) => setIncoterms(e.target.value)} placeholder="CFR" disabled={isSaving} className="h-10 rounded-lg bg-slate-50/50 dark:bg-slate-900" />
+                                    <Label htmlFor="salesperson" className="text-xs font-semibold text-slate-500 dark:text-slate-400">Salesperson</Label>
+                                    <Input id="salesperson" value={salesperson} onChange={e => setSalesperson(e.target.value)} placeholder="Rica Cahyadi" disabled={isSaving} className="h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
                                 </div>
-
-                                {/* Minimum Order Value */}
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="minimumOrderValue" className="text-xs font-bold text-slate-400 uppercase">Minimum Order Value</Label>
-                                    <Input id="minimumOrderValue" type="text" value={minimumOrderValue} onChange={(e) => setMinimumOrderValue(e.target.value)} placeholder="0.00" disabled={isSaving} className="h-10 rounded-lg bg-slate-50/50 dark:bg-slate-900 font-mono" />
+                                    <Label htmlFor="telephone" className="text-xs font-semibold text-slate-500 dark:text-slate-400">Telepon</Label>
+                                    <Input id="telephone" value={telephone} onChange={e => setTelephone(e.target.value)} placeholder="+62215551234" disabled={isSaving} className="h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
                                 </div>
-
-                                {/* Salesperson */}
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="salesperson" className="text-xs font-bold text-slate-400 uppercase">Salesperson</Label>
-                                    <Input id="salesperson" type="text" value={salesperson} onChange={(e) => setSalesperson(e.target.value)} placeholder="Rica Cahyadi" disabled={isSaving} className="h-10 rounded-lg bg-slate-50/50 dark:bg-slate-900" />
+                                    <Label htmlFor="purchOrganization" className="text-xs font-semibold text-slate-500 dark:text-slate-400">Org. Pembelian</Label>
+                                    <Input id="purchOrganization" value={purchOrganization} onChange={e => setPurchOrganization(e.target.value)} placeholder="2000" disabled={isSaving} className="h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
                                 </div>
-
-                                {/* Telephone */}
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="telephone" className="text-xs font-bold text-slate-400 uppercase">Telephone</Label>
-                                    <Input id="telephone" type="text" value={telephone} onChange={(e) => setTelephone(e.target.value)} placeholder="+62215551234" disabled={isSaving} className="h-10 rounded-lg bg-slate-50/50 dark:bg-slate-900" />
+                                    <Label htmlFor="purchOrgDescr" className="text-xs font-semibold text-slate-500 dark:text-slate-400">Deskripsi Org. Pembelian</Label>
+                                    <Input id="purchOrgDescr" value={purchOrgDescr} onChange={e => setPurchOrgDescr(e.target.value)} placeholder="Chitra (Central)" disabled={isSaving} className="h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
                                 </div>
-
-                                {/* Purch. Organization */}
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="purchOrganization" className="text-xs font-bold text-slate-400 uppercase">Purch. Organization</Label>
-                                    <Input id="purchOrganization" type="text" value={purchOrganization} onChange={(e) => setPurchOrganization(e.target.value)} placeholder="2000" disabled={isSaving} className="h-10 rounded-lg bg-slate-50/50 dark:bg-slate-900" />
-                                </div>
-
-                                {/* Purch. Org. Descr. */}
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="purchOrgDescr" className="text-xs font-bold text-slate-400 uppercase">Purch. Org. Description</Label>
-                                    <Input id="purchOrgDescr" type="text" value={purchOrgDescr} onChange={(e) => setPurchOrgDescr(e.target.value)} placeholder="Chitra (Central)" disabled={isSaving} className="h-10 rounded-lg bg-slate-50/50 dark:bg-slate-900" />
-                                </div>
-
-                                {/* Num of Purchasing Orgs */}
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="numPurchasingOrgs" className="text-xs font-bold text-slate-400 uppercase">Number of Purchasing Organizations</Label>
-                                    <Input id="numPurchasingOrgs" type="number" value={numPurchasingOrgs} onChange={(e) => setNumPurchasingOrgs(Number(e.target.value))} min={1} required disabled={isSaving} className="h-10 rounded-lg bg-slate-50/50 dark:bg-slate-900" />
-                                </div>
-
-                                {/* Status */}
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="status" className="text-xs font-bold text-slate-400 uppercase">Status</Label>
-                                    <select 
-                                        id="status" 
-                                        value={status} 
-                                        onChange={(e) => setStatus(e.target.value)}
-                                        className="flex h-10 w-full rounded-lg border border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-800 px-3 py-2 text-sm focus-visible:outline-none"
-                                        disabled={isSaving}
-                                    >
+                                    <Label htmlFor="status" className="text-xs font-semibold text-slate-500 dark:text-slate-400">Status</Label>
+                                    <select id="status" value={status} onChange={e => setStatus(e.target.value)} disabled={isSaving} className="flex h-10 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm focus-visible:outline-none text-slate-900 dark:text-white">
                                         <option value="Active">Active</option>
                                         <option value="Pending Audit">Pending Audit</option>
                                         <option value="Archived">Archived</option>
                                     </select>
                                 </div>
+                            </div>
 
-                            </CardContent>
-                            <div className="flex justify-end gap-3 px-6 py-4 border-t bg-slate-50 dark:bg-slate-900/50 rounded-b-2xl">
-                                <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)} disabled={isSaving} className="rounded-lg">Cancel</Button>
-                                <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-5 shadow-sm font-semibold" disabled={isSaving}>
-                                    {isSaving ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Saving...
-                                        </>
-                                    ) : (
-                                        "Save Vendor"
-                                    )}
+                            {/* Footer */}
+                            <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 rounded-b-2xl">
+                                <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)} disabled={isSaving} className="rounded-xl h-10 px-5 font-semibold">Batal</Button>
+                                <Button type="submit" disabled={isSaving} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-10 px-5 font-semibold shadow-md shadow-blue-500/20">
+                                    {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Menyimpan...</> : (editId ? "Simpan Perubahan" : "Tambah Vendor")}
                                 </Button>
                             </div>
                         </form>
-                    </Card>
+                    </div>
                 </div>
             )}
 
-            {/* Excel / CSV Import Mapping Modal */}
-            {isImportOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm transition-opacity duration-300 overflow-y-auto">
-                    <Card className="w-full max-w-4xl bg-white dark:bg-slate-950 shadow-2xl border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden my-8 animate-in zoom-in-95 duration-200">
-                        <CardHeader className="relative border-b pb-4 bg-slate-50/50 dark:bg-slate-900/50">
-                            <CardTitle className="text-xl font-bold font-parkinsans text-slate-900 dark:text-white flex items-center gap-2">
-                                <Download className="h-5 w-5 text-blue-600" /> Import Vendors from Spreadsheet
-                            </CardTitle>
-                            <CardDescription>
-                                Drag and drop your Excel (.xlsx) or CSV file, and map your spreadsheet columns to the database fields.
-                            </CardDescription>
-                            <button onClick={() => { setIsImportOpen(false); setImportFile(null); }} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
-                                <X className="h-5 w-5" />
-                            </button>
-                        </CardHeader>
-                        <CardContent className="p-6 space-y-6 max-h-[65vh] overflow-y-auto scrollbar-thin">
-                            
-                            {!importFile ? (
-                                // File Dropzone
-                                <div 
-                                    onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
-                                    onDragLeave={() => setIsDragOver(false)}
-                                    onDrop={(e) => {
-                                        e.preventDefault();
-                                        setIsDragOver(false);
-                                        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                                            handleFileChange(e.dataTransfer.files[0]);
-                                        }
-                                    }}
-                                    className={`border-2 border-dashed rounded-2xl p-12 text-center flex flex-col items-center justify-center cursor-pointer transition-all ${
-                                        isDragOver 
-                                            ? "border-blue-500 bg-blue-50/30 dark:bg-blue-950/20" 
-                                            : "border-slate-200 dark:border-slate-800 hover:border-blue-400 hover:bg-slate-50/50 dark:hover:bg-slate-900/20"
-                                    }`}
-                                    onClick={() => document.getElementById("excel-file-input")?.click()}
-                                >
-                                    <Download className="h-12 w-12 text-slate-400 mb-4 animate-bounce" />
-                                    <h3 className="font-bold text-slate-700 dark:text-slate-350 text-base">Drag and drop your spreadsheet here</h3>
-                                    <p className="text-xs text-slate-400 mt-1.5">Accepts Excel (.xlsx) or Comma-Separated Values (.csv)</p>
-                                    <Button variant="outline" className="mt-5 rounded-lg border-slate-200 h-9 px-4 font-semibold text-slate-700 dark:text-slate-300">
-                                        Browse Files
-                                    </Button>
-                                    <input 
-                                        id="excel-file-input" 
-                                        type="file" 
-                                        accept=".xlsx,.csv" 
-                                        className="hidden" 
-                                        onChange={(e) => {
-                                            if (e.target.files && e.target.files[0]) {
-                                                handleFileChange(e.target.files[0]);
-                                            }
-                                        }}
-                                    />
-                                </div>
-                            ) : (
-                                // Mapping screen
-                                <div className="space-y-6">
-                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border gap-4">
-                                        <div className="flex items-center gap-3">
-                                            <Briefcase className="h-8 w-8 text-blue-600 bg-white dark:bg-slate-950 p-1.5 border rounded-lg shadow-sm" />
-                                            <div>
-                                                <div className="font-bold text-sm text-slate-800 dark:text-slate-250">{importFile.name}</div>
-                                                <div className="text-xs text-slate-400">{(importFile.size / 1024).toFixed(1)} KB • {parsedRows.length} rows found</div>
-                                            </div>
-                                        </div>
-                                        <div className="flex gap-2 items-center">
-                                            {sheetNames.length > 1 && (
-                                                <div className="flex items-center gap-2">
-                                                    <Label htmlFor="sheet-select" className="text-xs text-slate-400 font-semibold shrink-0">Sheet:</Label>
-                                                    <select
-                                                        id="sheet-select"
-                                                        value={selectedSheet}
-                                                        onChange={async (e) => {
-                                                            const s = e.target.value;
-                                                            setSelectedSheet(s);
-                                                            setIsLoading(true);
-                                                            const reader = new FileReader();
-                                                            reader.onload = (ev) => {
-                                                                const data = new Uint8Array(ev.target?.result as ArrayBuffer);
-                                                                const wb = XLSX.read(data, { type: "array" });
-                                                                parseExcelSheet(wb, s);
-                                                                setIsLoading(false);
-                                                            };
-                                                            reader.readAsArrayBuffer(importFile);
-                                                        }}
-                                                        className="h-9 text-xs rounded-lg border bg-white dark:bg-slate-950 px-2 py-1 focus-visible:outline-none"
-                                                    >
-                                                        {sheetNames.map(name => (
-                                                            <option key={name} value={name}>{name}</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
+            {/* ============================================ */}
+            {/* MODAL: VIEW DETAILS */}
+            {/* ============================================ */}
+            {isDetailsOpen && selectedVendor && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center p-4 z-50 overflow-y-auto">
+                    <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 my-8 animate-in zoom-in-95 duration-200">
+
+                        {/* Header */}
+                        <div className="p-6 border-b border-slate-100 dark:border-slate-800">
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="flex items-center gap-4">
+                                    <div className={`h-12 w-12 rounded-2xl bg-gradient-to-br ${getAvatarColor(selectedVendor.nameOfVendor)} flex items-center justify-center text-white text-base font-bold shadow-lg shrink-0`}>
+                                        {getInitials(selectedVendor.nameOfVendor)}
+                                    </div>
+                                    <div>
+                                        <h2 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">{selectedVendor.nameOfVendor}</h2>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            {selectedVendor.supplier ? (
+                                                <span className="font-mono text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-lg">{selectedVendor.supplier}</span>
+                                            ) : (
+                                                <span className="text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-2 py-0.5 rounded-lg">Kode Belum Ditugaskan</span>
                                             )}
-                                            <Button 
-                                                onClick={() => { setImportFile(null); setParsedHeaders([]); setParsedRows([]); }} 
-                                                variant="outline" 
-                                                className="h-9 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 border-slate-200 dark:border-slate-800 rounded-lg font-semibold"
-                                            >
-                                                Change File
-                                            </Button>
+                                            <StatusBadge status={selectedVendor.status} />
+                                        </div>
+                                    </div>
+                                </div>
+                                <button onClick={() => setIsDetailsOpen(false)} className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0">
+                                    <X className="h-4 w-4" />
+                                </button>
+                            </div>
+
+                            {/* Detail Tabs */}
+                            <div className="flex gap-1 mt-4">
+                                {[
+                                    { key: "info", label: "Info Umum", icon: Building2 },
+                                    { key: "sop", label: "Data SOP", icon: FileText },
+                                    { key: "documents", label: `Dokumen (${selectedVendorDocs.length})`, icon: Download },
+                                ].map(tab => (
+                                    <button
+                                        key={tab.key}
+                                        onClick={() => setDetailsTab(tab.key as "info" | "sop" | "documents")}
+                                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${detailsTab === tab.key
+                                            ? "bg-blue-600 text-white"
+                                            : "text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                                            }`}
+                                    >
+                                        <tab.icon className="h-3.5 w-3.5" />
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6 max-h-[55vh] overflow-y-auto space-y-5">
+                            {/* INFO TAB */}
+                            {detailsTab === "info" && (
+                                <div className="space-y-5">
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                        <InfoField label="Account Group" value={selectedVendor.accountGroup} />
+                                        <InfoField label="Mata Uang" value={selectedVendor.orderCurrency} mono />
+                                        <InfoField label="Terms of Payment" value={selectedVendor.termsOfPayment} mono />
+                                        <InfoField label="Incoterms" value={selectedVendor.incoterms} />
+                                        <InfoField label="Min. Order Value" value={selectedVendor.minimumOrderValue ? `${selectedVendor.orderCurrency} ${selectedVendor.minimumOrderValue}` : null} mono />
+                                        <InfoField label="Search Term" value={selectedVendor.searchTerm} />
+                                    </div>
+
+                                    <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
+                                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Lokasi & Kontak</p>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                            <div className="md:col-span-3">
+                                                <InfoField
+                                                    label="Alamat Lengkap"
+                                                    value={[selectedVendor.street, selectedVendor.city, selectedVendor.country, selectedVendor.postalCode].filter(Boolean).join(", ")}
+                                                    icon={<MapPin className="h-3.5 w-3.5" />}
+                                                />
+                                            </div>
+                                            <InfoField label="Salesperson" value={selectedVendor.salesperson} icon={<Users className="h-3.5 w-3.5" />} />
+                                            <InfoField label="Telepon" value={selectedVendor.telephone} icon={<Phone className="h-3.5 w-3.5" />} mono />
                                         </div>
                                     </div>
 
-                                    {/* Mappings Grid */}
-                                    <div className="space-y-3">
-                                        <div className="text-sm font-bold text-slate-800 dark:text-slate-250 flex items-center gap-1.5">
-                                            <Filter className="h-4 w-4 text-blue-600" /> Database Column Mapping
+                                    <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
+                                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Organisasi Pembelian</p>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <InfoField label="Kode Org." value={selectedVendor.purchOrganization} mono />
+                                            <InfoField label="Deskripsi Org." value={selectedVendor.purchOrgDescr} />
                                         </div>
-                                        <p className="text-xs text-slate-400">Match the database fields on the left with columns from your spreadsheet on the right.</p>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-2xl bg-slate-50/50 dark:bg-slate-900/10">
-                                            {dbFields.map((field) => (
-                                                <div key={field.key} className="flex items-center justify-between gap-4 border-b pb-2.5 last:border-0 last:pb-0 font-medium">
-                                                    <Label htmlFor={`map-${field.key}`} className="text-xs font-bold text-slate-550 dark:text-slate-450 uppercase tracking-wide truncate max-w-[200px]" title={field.label}>
-                                                        {field.label}
-                                                    </Label>
+                                    </div>
+
+                                    <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono border-t border-slate-100 dark:border-slate-800 pt-3">
+                                        <span>Dibuat: {new Date(selectedVendor.createdAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                                        <span>Diperbarui: {new Date(selectedVendor.updatedAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* SOP TAB */}
+                            {detailsTab === "sop" && (
+                                <div className="space-y-4">
+                                    {selectedVendor.vendorType ? (
+                                        <>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                                <InfoField label="Tipe Vendor" value={selectedVendor.vendorType?.replace("_", " ")} />
+                                                <InfoField label="Status PKP" value={selectedVendor.pkpStatus} />
+                                                <InfoField label="Klasifikasi Usaha" value={selectedVendor.classification} />
+                                                {selectedVendor.vendorType === "badan_usaha" ? (
+                                                    <>
+                                                        <InfoField label="NPWP Perusahaan" value={selectedVendor.npwp} mono />
+                                                        <InfoField label="NIB" value={selectedVendor.nib} mono />
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <InfoField label="NIK" value={selectedVendor.nik} mono />
+                                                        <InfoField label="NPWP Pribadi" value={selectedVendor.npwp} mono />
+                                                    </>
+                                                )}
+                                            </div>
+                                            <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
+                                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">PIC & Kontak</p>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <InfoField label="Nama PIC" value={selectedVendor.picName} icon={<Users className="h-3.5 w-3.5" />} />
+                                                    <InfoField label="Telepon PIC" value={selectedVendor.picPhone} icon={<Phone className="h-3.5 w-3.5" />} mono />
+                                                    <InfoField label="Email PIC" value={selectedVendor.picEmail} icon={<Mail className="h-3.5 w-3.5" />} />
+                                                    <InfoField label="Email Perusahaan" value={selectedVendor.emailCompany} icon={<Mail className="h-3.5 w-3.5" />} />
+                                                </div>
+                                            </div>
+                                            <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
+                                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Informasi Bank</p>
+                                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                                    <InfoField label="Bank" value={selectedVendor.bankName} />
+                                                    <InfoField label="No. Rekening" value={selectedVendor.bankAccountNo} mono />
+                                                    <InfoField label="Nama Pemilik" value={selectedVendor.bankAccountName} />
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-3 mt-3">
+                                                    <div className={`flex items-center gap-2 p-3 rounded-xl border ${selectedVendor.isBankAccountDiffName ? "bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800" : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"}`}>
+                                                        <Checkbox checked={selectedVendor.isBankAccountDiffName} disabled />
+                                                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Nama Rekening Berbeda</span>
+                                                    </div>
+                                                    <div className={`flex items-center gap-2 p-3 rounded-xl border ${selectedVendor.isAssetOwnerDiff ? "bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800" : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"}`}>
+                                                        <Checkbox checked={selectedVendor.isAssetOwnerDiff} disabled />
+                                                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Aset Pihak Ketiga</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+                                            <div className="h-12 w-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                                                <FileText className="h-6 w-6 text-slate-400" />
+                                            </div>
+                                            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Tidak Ada Data SOP</p>
+                                            <p className="text-xs text-slate-400">Vendor ini belum melengkapi data SOP registrasi.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* DOCUMENTS TAB */}
+                            {detailsTab === "documents" && (
+                                <div className="space-y-3">
+                                    {selectedVendorDocs.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+                                            <div className="h-12 w-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                                                <Download className="h-6 w-6 text-slate-400" />
+                                            </div>
+                                            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Tidak Ada Dokumen</p>
+                                            <p className="text-xs text-slate-400">Belum ada dokumen yang diunggah oleh vendor ini.</p>
+                                        </div>
+                                    ) : (
+                                        selectedVendorDocs.map((doc) => {
+                                            const docLabels: Record<string, string> = {
+                                                npwp_scan: "Scan NPWP",
+                                                ktp_director: "Scan KTP Direktur",
+                                                nib_scan: "Scan NIB",
+                                                akta_establishment: "Scan Akta Pendirian",
+                                                pkp_letter: "Surat Pengukuhan PKP",
+                                                ktp_personal: "Scan KTP Personal",
+                                                non_pkp_statement: "Surat Non-PKP",
+                                                power_attorney_bank: "Surat Kuasa Rekening",
+                                                power_attorney_asset: "Surat Kuasa Aset"
+                                            };
+                                            return (
+                                                <div key={doc.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 gap-4 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+                                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                        <div className="h-9 w-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center shrink-0">
+                                                            <FileText className="h-4 w-4 text-blue-600" />
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <p className="font-semibold text-sm text-slate-700 dark:text-slate-300">{docLabels[doc.docType] || doc.docType}</p>
+                                                            <p className="text-[11px] text-slate-400 truncate">{doc.fileName}</p>
+                                                        </div>
+                                                    </div>
+                                                    <Button asChild size="sm" variant="outline" className="h-8 rounded-lg font-semibold shrink-0 text-xs">
+                                                        <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" download>
+                                                            <Download className="h-3.5 w-3.5 mr-1" /> Download
+                                                        </a>
+                                                    </Button>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 rounded-b-2xl">
+                            <div className="flex gap-2">
+                                {canUpdate && (
+                                    <Button
+                                        type="button"
+                                        onClick={() => { setIsDetailsOpen(false); handleOpenEdit(selectedVendor); }}
+                                        variant="outline"
+                                        className="h-9 px-4 rounded-xl text-sm font-semibold gap-1.5 border-slate-200 dark:border-slate-700"
+                                    >
+                                        <Edit2 className="h-4 w-4" /> Edit
+                                    </Button>
+                                )}
+                                {canDelete && (
+                                    <Button
+                                        type="button"
+                                        onClick={() => { setIsDetailsOpen(false); handleDelete(selectedVendor); }}
+                                        variant="outline"
+                                        className="h-9 px-4 rounded-xl text-sm font-semibold gap-1.5 border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950/20 dark:text-red-400"
+                                    >
+                                        <Trash2 className="h-4 w-4" /> Hapus
+                                    </Button>
+                                )}
+                            </div>
+
+                            <div className="flex gap-2">
+                                {selectedVendor.status === "Pending Audit" && canUpdate && (
+                                    <Button
+                                        type="button"
+                                        onClick={() => { setApproveSupplierCode(""); setIsApproveOpen(true); }}
+                                        className="h-9 px-4 rounded-xl text-sm font-semibold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/20"
+                                    >
+                                        <CheckCircle2 className="h-4 w-4" /> Verifikasi & Setujui
+                                    </Button>
+                                )}
+                                <Button
+                                    type="button"
+                                    onClick={() => setIsDetailsOpen(false)}
+                                    variant="outline"
+                                    className="h-9 px-4 rounded-xl text-sm font-semibold border-slate-200 dark:border-slate-700"
+                                >
+                                    Tutup
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ============================================ */}
+            {/* MODAL: VERIFY & APPROVE */}
+            {/* ============================================ */}
+            {isApproveOpen && selectedVendor && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[55]">
+                    <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+                        <div className="p-6 text-center border-b border-slate-100 dark:border-slate-800">
+                            <div className="h-14 w-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center mx-auto mb-3 border border-emerald-200 dark:border-emerald-800">
+                                <CheckCircle2 className="h-7 w-7 text-emerald-600" />
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Verifikasi Vendor</h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                                Setujui registrasi <strong className="text-slate-700 dark:text-slate-300">{selectedVendor.nameOfVendor}</strong> dan masukkan kode supplier dari ERP.
+                            </p>
+                        </div>
+
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            if (!approveSupplierCode.trim()) { alert("Kode Supplier wajib diisi!"); return; }
+                            setIsApproving(true);
+                            try {
+                                const res = await approveVendor(selectedVendor.id, approveSupplierCode.trim());
+                                if (res.success) {
+                                    setMessage({ type: "success", text: `Vendor ${selectedVendor.nameOfVendor} berhasil diverifikasi dengan kode: ${approveSupplierCode}` });
+                                    setIsApproveOpen(false); setIsDetailsOpen(false); fetchVendors();
+                                } else { alert(res.error || "Gagal menyetujui vendor"); }
+                            } catch (err) { console.error(err); alert("Terjadi kesalahan koneksi"); }
+                            finally { setIsApproving(false); }
+                        }}>
+                            <div className="p-6 space-y-4">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="approveSupplier" className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                                        Kode Supplier ERP <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        id="approveSupplier"
+                                        value={approveSupplierCode}
+                                        onChange={e => setApproveSupplierCode(e.target.value)}
+                                        required
+                                        placeholder="Masukkan kode supplier ERP (e.g. 2000045)"
+                                        disabled={isApproving}
+                                        className="h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 font-mono"
+                                    />
+                                    <p className="text-[11px] text-slate-400">Pastikan kode sesuai dengan yang terdaftar pada sistem ERP finansial.</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-3 px-6 pb-6">
+                                <Button type="button" variant="outline" onClick={() => setIsApproveOpen(false)} disabled={isApproving} className="flex-1 h-10 rounded-xl font-semibold">Batal</Button>
+                                <Button type="submit" disabled={isApproving} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-10 rounded-xl font-semibold shadow-md shadow-emerald-500/20">
+                                    {isApproving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Setujui"}
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ============================================ */}
+            {/* MODAL: DELETE CONFIRMATION */}
+            {/* ============================================ */}
+            {vendorToDelete && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-red-100 dark:border-red-900/50 animate-in zoom-in-95 duration-200">
+                        <div className="p-6 text-center">
+                            <div className="h-14 w-14 rounded-2xl bg-red-50 dark:bg-red-950/40 flex items-center justify-center mx-auto mb-3 border border-red-100 dark:border-red-900/50">
+                                <AlertTriangle className="h-7 w-7 text-red-600" />
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Hapus Vendor?</h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                Anda yakin ingin menghapus <strong className="text-slate-700 dark:text-slate-300">{vendorToDelete.nameOfVendor}</strong>? Tindakan ini tidak dapat dibatalkan.
+                            </p>
+                        </div>
+                        <div className="flex gap-3 px-6 pb-6">
+                            <Button type="button" variant="outline" onClick={() => setVendorToDelete(null)} disabled={isLoading} className="flex-1 h-10 rounded-xl font-semibold">Batal</Button>
+                            <Button type="button" onClick={handleConfirmDelete} disabled={isLoading} className="flex-1 bg-red-600 hover:bg-red-700 text-white h-10 rounded-xl font-semibold shadow-md shadow-red-500/20">
+                                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Ya, Hapus"}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ============================================ */}
+            {/* MODAL: IMPORT EXCEL/CSV */}
+            {/* ============================================ */}
+            {isImportOpen && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center p-4 z-50 overflow-y-auto">
+                    <div className="w-full max-w-4xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 my-8 animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
+                            <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-md">
+                                    <Upload className="h-5 w-5 text-white" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-bold text-slate-900 dark:text-white">Import Vendor dari Spreadsheet</h2>
+                                    <p className="text-xs text-slate-400">Seret dan lepas file Excel (.xlsx) atau CSV Anda</p>
+                                </div>
+                            </div>
+                            <button onClick={() => { setIsImportOpen(false); setImportFile(null); }} className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 max-h-[65vh] overflow-y-auto space-y-6">
+                            {!importFile ? (
+                                <div
+                                    onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
+                                    onDragLeave={() => setIsDragOver(false)}
+                                    onDrop={e => { e.preventDefault(); setIsDragOver(false); if (e.dataTransfer.files?.[0]) handleFileChange(e.dataTransfer.files[0]); }}
+                                    onClick={() => document.getElementById("excel-file-input")?.click()}
+                                    className={`border-2 border-dashed rounded-2xl p-14 text-center flex flex-col items-center justify-center cursor-pointer transition-all ${isDragOver ? "border-blue-500 bg-blue-50/30 dark:bg-blue-950/20" : "border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:bg-slate-50/50 dark:hover:bg-slate-800/20"}`}
+                                >
+                                    <div className="h-16 w-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
+                                        <Upload className="h-8 w-8 text-slate-400" />
+                                    </div>
+                                    <h3 className="font-bold text-slate-700 dark:text-slate-300 text-base">Seret file spreadsheet ke sini</h3>
+                                    <p className="text-xs text-slate-400 mt-1.5">Mendukung Excel (.xlsx) atau CSV</p>
+                                    <Button variant="outline" className="mt-5 rounded-xl h-9 px-5 font-semibold text-sm">Pilih File</Button>
+                                    <input id="excel-file-input" type="file" accept=".xlsx,.csv" className="hidden" onChange={e => { if (e.target.files?.[0]) handleFileChange(e.target.files[0]); }} />
+                                </div>
+                            ) : (
+                                <div className="space-y-5">
+                                    <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 gap-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-10 w-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center border border-emerald-200 dark:border-emerald-800">
+                                                <FileText className="h-5 w-5 text-emerald-600" />
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold text-sm text-slate-800 dark:text-slate-200">{importFile.name}</p>
+                                                <p className="text-xs text-slate-400">{(importFile.size / 1024).toFixed(1)} KB • {parsedRows.length} baris ditemukan</p>
+                                            </div>
+                                        </div>
+                                        <Button onClick={() => { setImportFile(null); setParsedHeaders([]); setParsedRows([]); }} variant="outline" className="h-8 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg font-semibold border-red-200 dark:border-red-800">
+                                            Ganti File
+                                        </Button>
+                                    </div>
+
+                                    <div>
+                                        <p className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1 flex items-center gap-1.5"><Filter className="h-4 w-4 text-blue-600" /> Pemetaan Kolom Database</p>
+                                        <p className="text-xs text-slate-400 mb-3">Cocokkan kolom dari spreadsheet ke field database.</p>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 border border-slate-200 dark:border-slate-700 p-4 rounded-xl bg-slate-50/50 dark:bg-slate-800/30">
+                                            {dbFields.map(field => (
+                                                <div key={field.key} className="flex items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-2.5 last:border-0 last:pb-0">
+                                                    <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide truncate">{field.label}</Label>
                                                     <select
-                                                        id={`map-${field.key}`}
                                                         value={columnMapping[field.key] || ""}
-                                                        onChange={(e) => setColumnMapping({ ...columnMapping, [field.key]: e.target.value })}
-                                                        className="h-9 text-xs rounded-lg border bg-white dark:bg-slate-950 dark:border-slate-800 px-3 py-1 focus-visible:outline-none w-56 font-medium"
+                                                        onChange={e => setColumnMapping({ ...columnMapping, [field.key]: e.target.value })}
+                                                        className="h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 focus-visible:outline-none w-52 font-medium"
                                                     >
-                                                        <option value="">[Do Not Map / Default]</option>
-                                                        {parsedHeaders.map((header) => (
-                                                            <option key={header} value={header}>{header}</option>
-                                                        ))}
+                                                        <option value="">[Abaikan / Default]</option>
+                                                        {parsedHeaders.map(h => <option key={h} value={h}>{h}</option>)}
                                                     </select>
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
-
-                                    {/* Pre-Mapping Raw Preview */}
-                                    {parsedRows.length > 0 && (
-                                        <div className="space-y-3 pt-3 border-t">
-                                            <div className="text-sm font-bold text-slate-800 dark:text-slate-250">
-                                                Raw Import Mapping Preview (First 3 Rows)
-                                            </div>
-                                            <div className="overflow-x-auto border rounded-xl max-w-full">
-                                                <table className="w-full text-xs text-left border-collapse">
-                                                    <thead>
-                                                        <tr className="border-b bg-slate-50 dark:bg-slate-900/50 text-slate-400 font-bold uppercase tracking-wider">
-                                                            {dbFields.slice(0, 6).map(field => (
-                                                                <th key={field.key} className="px-4 py-2 border-r font-bold">{field.label.replace(' (Required)', '')}</th>
-                                                            ))}
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {parsedRows.slice(0, 3).map((row, rowIdx) => {
-                                                            const getVal = (key: string) => {
-                                                                const mappedCol = columnMapping[key];
-                                                                if (!mappedCol) return "";
-                                                                const idx = parsedHeaders.indexOf(mappedCol);
-                                                                return idx !== -1 ? String(row[idx] || "") : "";
-                                                            };
-                                                            return (
-                                                                <tr key={rowIdx} className="border-b last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-900/10">
-                                                                    {dbFields.slice(0, 6).map(field => (
-                                                                        <td key={field.key} className="px-4 py-2 border-r truncate max-w-[120px] font-medium" title={getVal(field.key)}>
-                                                                            {getVal(field.key) || <span className="text-slate-400 italic">Default</span>}
-                                                                        </td>
-                                                                    ))}
-                                                                </tr>
-                                                            );
-                                                        })}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             )}
+                        </div>
 
-                        </CardContent>
-                        <div className="flex justify-end gap-3 px-6 py-4 border-t bg-slate-50 dark:bg-slate-900/50 rounded-b-2xl">
-                            <Button type="button" variant="outline" onClick={() => { setIsImportOpen(false); setImportFile(null); }} disabled={isImporting} className="rounded-lg">
-                                Cancel
-                            </Button>
+                        <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 rounded-b-2xl">
+                            <Button variant="outline" onClick={() => { setIsImportOpen(false); setImportFile(null); }} disabled={isImporting} className="rounded-xl font-semibold h-10 px-5">Batal</Button>
                             {importFile && (
-                                <Button 
-                                    onClick={handleCommitImport} 
-                                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-5 shadow-sm font-semibold" 
-                                    disabled={isImporting}
-                                >
-                                    {isImporting ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Importing...
-                                        </>
-                                    ) : (
-                                        `Commit Import (${parsedRows.length} Rows)`
-                                    )}
+                                <Button onClick={handleCommitImport} disabled={isImporting} className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-semibold h-10 px-5 shadow-md shadow-violet-500/20">
+                                    {isImporting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Mengimpor...</> : `Impor ${parsedRows.length} Baris`}
                                 </Button>
                             )}
                         </div>
-                    </Card>
+                    </div>
                 </div>
             )}
+        </div>
+    );
+}
 
-            {/* View Details Drawer/Modal */}
-            {isDetailsOpen && selectedVendor && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm transition-opacity duration-300">
-                    <Card className="w-full max-w-2xl bg-white dark:bg-slate-950 shadow-2xl border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-                        <CardHeader className="relative border-b pb-4 bg-slate-50/50 dark:bg-slate-900/50">
-                            <CardTitle className="text-lg font-bold font-parkinsans flex items-center gap-2 text-slate-900 dark:text-white">
-                                <MapPin className="h-5 w-5 text-blue-600" /> Supplier Profile: {selectedVendor.nameOfVendor}
-                            </CardTitle>
-                            <CardDescription>
-                                Rincian lengkap master record dan kepatuhan administrasi vendor.
-                            </CardDescription>
-                            <button onClick={() => setIsDetailsOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
-                                <X className="h-5 w-5" />
-                            </button>
-                        </CardHeader>
-                        <CardContent className="p-6 space-y-5 max-h-[60vh] overflow-y-auto">
-                            
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6 text-sm">
-                                <div>
-                                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Supplier Code</span>
-                                    <span className="font-bold font-mono text-slate-900 dark:text-white text-base">{selectedVendor.supplier}</span>
-                                </div>
-                                <div>
-                                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Account Group</span>
-                                    <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedVendor.accountGroup}</span>
-                                </div>
-                                <div>
-                                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Status</span>
-                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold capitalize mt-0.5 ${
-                                        selectedVendor.status === "Active" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400" :
-                                        selectedVendor.status === "Pending Audit" ? "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400" :
-                                        "bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-400"
-                                    }`}>
-                                        {selectedVendor.status}
-                                    </span>
-                                </div>
-                                <div className="col-span-2 md:col-span-3 border-t pt-3">
-                                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Alamat Lengkap</span>
-                                    <span className="font-medium text-slate-800 dark:text-slate-200 block mt-0.5">
-                                        {selectedVendor.street || "-"}, {selectedVendor.city || "-"}, {selectedVendor.country || "-"} {selectedVendor.postalCode || ""}
-                                    </span>
-                                </div>
-                                
-                                <div className="col-span-2 md:col-span-3 border-t pt-3 grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6">
-                                    <div>
-                                        <span className="text-[10px] font-bold text-slate-400 block uppercase">Terms of Payment</span>
-                                        <span className="font-semibold text-slate-800 dark:text-slate-200 font-mono">{selectedVendor.termsOfPayment || "-"}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-[10px] font-bold text-slate-400 block uppercase">Incoterms</span>
-                                        <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedVendor.incoterms || "-"}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-[10px] font-bold text-slate-400 block uppercase">Min Order Value</span>
-                                        <span className="font-semibold text-slate-800 dark:text-slate-200 font-mono">{selectedVendor.orderCurrency} {selectedVendor.minimumOrderValue || "0.00"}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-[10px] font-bold text-slate-400 block uppercase">Salesperson</span>
-                                        <span className="font-semibold text-slate-850 dark:text-slate-200">{selectedVendor.salesperson || "-"}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-[10px] font-bold text-slate-400 block uppercase">Telephone</span>
-                                        <span className="font-semibold text-slate-800 dark:text-slate-200 font-mono">{selectedVendor.telephone || "-"}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-[10px] font-bold text-slate-400 block uppercase">Search Term</span>
-                                        <span className="font-semibold text-slate-800 dark:text-slate-200 font-mono">{selectedVendor.searchTerm || "-"}</span>
-                                    </div>
-                                </div>
-
-                                <div className="col-span-2 md:col-span-3 border-t pt-3 grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6">
-                                    <div>
-                                        <span className="text-[10px] font-bold text-slate-400 block uppercase">Purch. Organization</span>
-                                        <span className="font-semibold text-slate-800 dark:text-slate-200 font-mono">{selectedVendor.purchOrganization}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-[10px] font-bold text-slate-400 block uppercase">Purch. Org. Description</span>
-                                        <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedVendor.purchOrgDescr}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-[10px] font-bold text-slate-400 block uppercase">Purch. Orgs Count</span>
-                                        <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedVendor.numPurchasingOrgs} Unit</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div className="border-t pt-3 text-[10px] text-slate-400 flex justify-between font-mono">
-                                <span>Created At: {new Date(selectedVendor.createdAt).toLocaleString()}</span>
-                                <span>Last Updated: {new Date(selectedVendor.updatedAt).toLocaleString()}</span>
-                            </div>
-
-                        </CardContent>
-                        <div className="flex justify-end gap-3 px-6 py-4 border-t bg-slate-50 dark:bg-slate-900/50 rounded-b-2xl">
-                            <Button type="button" onClick={() => setIsDetailsOpen(false)} className="bg-slate-950 text-white hover:bg-slate-850 dark:bg-slate-800 dark:hover:bg-slate-750 rounded-lg">
-                                Close Profile
-                            </Button>
-                        </div>
-                    </Card>
-                </div>
+// Helper component for displaying info fields
+function InfoField({ label, value, mono = false, icon }: { label: string; value?: string | number | null; mono?: boolean; icon?: React.ReactNode }) {
+    return (
+        <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{label}</p>
+            {value ? (
+                <p className={`text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 ${mono ? "font-mono" : ""}`}>
+                    {icon && <span className="text-slate-400">{icon}</span>}
+                    {value}
+                </p>
+            ) : (
+                <p className="text-sm text-slate-300 dark:text-slate-600">—</p>
             )}
-
-            {/* Delete Confirmation Modal */}
-            {vendorToDelete && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm transition-opacity duration-300">
-                    <Card className="w-full max-w-sm bg-white dark:bg-slate-950 shadow-2xl border border-red-200 dark:border-red-900/50 transform transition-all duration-300 scale-100 rounded-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-                        <CardHeader className="text-center pb-4 pt-6">
-                            <div className="flex justify-center mb-3">
-                                <div className="bg-red-100 dark:bg-red-900/30 p-3 rounded-full">
-                                    <AlertTriangle className="h-8 w-8 text-red-600 dark:text-red-400" />
-                                </div>
-                            </div>
-                            <CardTitle className="text-xl font-bold font-parkinsans tracking-tight text-slate-900 dark:text-white">Hapus Vendor?</CardTitle>
-                            <CardDescription className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-                                Anda yakin ingin menghapus vendor <strong>{vendorToDelete.nameOfVendor}</strong>? Data terkait mungkin akan hilang.
-                            </CardDescription>
-                        </CardHeader>
-                        <div className="flex gap-3 px-6 py-4 bg-slate-50 dark:bg-slate-900/50 border-t">
-                            <Button type="button" variant="outline" onClick={() => setVendorToDelete(null)} disabled={isLoading} className="flex-1 h-10 font-semibold rounded-lg bg-white">
-                                Batal
-                            </Button>
-                            <Button type="button" onClick={handleConfirmDelete} disabled={isLoading} className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold h-10 rounded-lg shadow-sm">
-                                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Ya, Hapus"}
-                            </Button>
-                        </div>
-                    </Card>
-                </div>
-            )}
-
-            {/* System Footer signature */}
-            <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-center mt-6 py-4 border-t border-slate-100 dark:border-slate-900 font-mono">
-                © 2024 SYSTEMATIC LEDGER FINANCE SYSTEM. ALL RIGHTS RESERVED.
-            </div>
-
         </div>
     );
 }

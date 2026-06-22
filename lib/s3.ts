@@ -1,12 +1,15 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import fs from "fs/promises";
+import path from "path";
 
 const endpoint = process.env.OBJECT_STORAGE_ENDPOINT;
-const bucket = process.env.OBJECT_STORAGE_BUCKET!;
+const bucket = process.env.OBJECT_STORAGE_BUCKET || "invoiceflow";
 const prefix = process.env.OBJECT_STORAGE_PREFIX || "upload";
 const region = process.env.OBJECT_STORAGE_REGION || "us-east-1";
 const forcePathStyle = process.env.OBJECT_STORAGE_FORCE_PATH_STYLE === "true";
-const accessKeyId = process.env.OBJECT_STORAGE_ACCESS_KEY_ID!;
-const secretAccessKey = process.env.OBJECT_STORAGE_SECRET_ACCESS_KEY!;
+const accessKeyId = process.env.OBJECT_STORAGE_ACCESS_KEY_ID || "";
+const secretAccessKey = process.env.OBJECT_STORAGE_SECRET_ACCESS_KEY || "";
+const uploadDriver = process.env.UPLOAD_DRIVER || "local";
 
 export const s3Client = new S3Client({
     endpoint,
@@ -19,14 +22,26 @@ export const s3Client = new S3Client({
 });
 
 /**
- * Uploads a file buffer to the configured S3 bucket and returns the public access URL.
+ * Uploads a file buffer to the configured S3 bucket (or local fs if configured) 
+ * and returns the public access URL.
  */
 export async function uploadFile(
     fileBuffer: Buffer,
     fileName: string,
     contentType: string
 ): Promise<string> {
-    const key = `${prefix}/${Date.now()}-${fileName}`;
+    const key = `${prefix}/${Date.now()}-${fileName.replace(/\s+/g, "_")}`;
+
+    if (uploadDriver === "local" || !endpoint) {
+        const uploadDir = path.join(process.cwd(), "public", "uploads", prefix);
+        await fs.mkdir(uploadDir, { recursive: true });
+        
+        const filePath = path.join(process.cwd(), "public", "uploads", key);
+        await fs.writeFile(filePath, fileBuffer);
+        
+        return `/uploads/${key}`;
+    }
+
     const command = new PutObjectCommand({
         Bucket: bucket,
         Key: key,
@@ -43,9 +58,19 @@ export async function uploadFile(
 }
 
 /**
- * Deletes a file from the configured S3 bucket using its public access URL.
+ * Deletes a file from the configured S3 bucket (or local fs) using its public access URL.
  */
 export async function deleteFile(fileUrl: string): Promise<void> {
+    if (fileUrl.startsWith("/uploads/")) {
+        try {
+            const filePath = path.join(process.cwd(), "public", fileUrl);
+            await fs.unlink(filePath);
+        } catch (e) {
+            console.error("Local file delete error:", e);
+        }
+        return;
+    }
+
     const marker = `${bucket}/`;
     const index = fileUrl.indexOf(marker);
     if (index === -1) return;

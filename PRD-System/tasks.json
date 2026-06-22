@@ -51,7 +51,7 @@
                   {
                       "id":  5,
                       "title":  "Integrate AWS Textract for OCR Field Extraction",
-                      "status":  "in_progress",
+                      "status":  "completed",
                       "details":  "Create an OCR service in NestJS. Trigger the AWS Textract AnalyzeDocument API when an invoice is uploaded. Map extracted key-value pairs (Vendor Name, PO Number, Invoice Number, Total, Tax) to the Invoice entity. Implement error handling for unreadable documents.",
                       "priority":  "high",
                       "description":  "Connect the backend to AWS Textract to automatically extract key data from uploaded invoices and map them to the database.",
@@ -87,7 +87,7 @@
                   {
                       "id":  8,
                       "title":  "Implement Centralized Audit Trail Logging",
-                      "status":  "pending",
+                      "status":  "completed",
                       "details":  "Implement an interceptor or event-driven approach in the backend to capture API actions. Log the user ID, action type, timestamp, target resource (e.g., Invoice ID), and outcome to the `AuditLog` table. Ensure logs are append-only and immutable.",
                       "priority":  "medium",
                       "description":  "Create a system to log all critical user actions (uploads, verifications, status changes) to ensure compliance and traceability.",
@@ -119,6 +119,42 @@
 
                                        ],
                       "testStrategy":  "Log in as a Finance user, verify the ability to change a verified invoice status to \u0027Paid\u0027, and successfully download the CSV export. Log in as a Super Admin, create a new Procurement Admin user, and verify the new user can successfully authenticate."
+                  },
+                  {
+                      "id":  11,
+                      "title":  "Hide OCR results from vendor and improve verification UI layout to use tabs",
+                      "status":  "completed",
+                      "details":  "Hide classification/extraction results from Vendor view. Keep showing them for Super Admin, Procurement Admin, and Finance. In details and verification views, adjust the OCR classification layout to use a compact horizontal tab interface instead of a long vertical listing.",
+                      "priority":  "high",
+                      "description":  "Adjust vendor permissions on OCR data and refactor the vertical OCR details/verification layout into horizontal tabs.",
+                      "dependencies":  [
+
+                                       ],
+                      "testStrategy":  "Ensure vendors cannot see OCR results in detail page. Verify that admin/procurement/finance can see OCR results in tabs on both detail and verification pages. Run build and check for errors."
+                  },
+                  {
+                      "id":  12,
+                      "title":  "Implement TOP-Based Scheduled Due Date and Finance Verification Workflow",
+                      "status":  "completed",
+                      "details":  "Calculate due date based on vendor TOP and the receipt date of the invoice (cut-off at day 20, pay on 28th-30th of target month). Implement 2-stage verification where Finance verifies invoices after Procurement Admin finishes, including revision request back to Procurement, and final status transition to Verified.",
+                      "priority":  "high",
+                      "description":  "Implement custom Term of Payment due date calculations and a secondary Finance verification stage in the invoice-hub audit pipeline.",
+                      "dependencies":  [
+
+                                       ],
+                      "testStrategy":  "Verify due date logic handles cut-off and TOP offsets correctly. Verify Finance verifiers can review reports, send revisions back to Procurement, or approve invoices to final Verified status. Run build to verify."
+                  },
+                  {
+                      "id":  13,
+                      "title":  "Develop Vendor Self-Registration and Verification Workflow",
+                      "status":  "completed",
+                      "details":  "Implement dynamic multi-step vendor registration form for Badan Usaha and Perorangan, conditional validation and document uploads, S3 upload endpoint, auto-formatting of name, and admin verification dashboard.",
+                      "priority":  "high",
+                      "description":  "Implement Vendor Self-Registration with conditional validation and document uploads under TMT Group SOP, and verification workflow.",
+                      "dependencies":  [
+
+                                       ],
+                      "testStrategy":  "Ensure guest registrations are validated correctly, names auto-formatted, documents uploaded to S3, and admin can approve pending registrations to assign supplier codes."
                   }
               ],
     "expanded_tasks":  [
