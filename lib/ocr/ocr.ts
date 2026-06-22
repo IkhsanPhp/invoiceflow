@@ -45,66 +45,21 @@ export interface MultiDocumentExtraction {
     documents: ExtractedDocument[];
 }
 
+import pdfParse from 'pdf-parse';
+
 /**
- * Extracts text content from a PDF file buffer using OpenDataLoader PDF CLI.
+ * Extracts text content from a PDF file buffer using pure Node.js pdf-parse library.
  */
-export function extractPdfToMarkdown(pdfBuffer: Buffer): Promise<string> {
-    return new Promise((resolve, reject) => {
-        const scratchDir = path.join(process.cwd(), 'scratch');
-        if (!fs.existsSync(scratchDir)) {
-            fs.mkdirSync(scratchDir, { recursive: true });
-        }
-
-        // Create temporary PDF file
-        const tempId = crypto.randomUUID();
-        const tempPdfPath = path.join(scratchDir, `temp-${tempId}.pdf`);
-        fs.writeFileSync(tempPdfPath, pdfBuffer);
-
-        const pythonScriptPath = path.join(process.cwd(), 'lib', 'ocr', 'fast-ocr.py');
-        console.log(`Running Fast OCR using Python: python ${pythonScriptPath} ${tempPdfPath}`);
-
-        const pythonProcess = spawn('python', [pythonScriptPath, tempPdfPath]);
-
-        let stdout = '';
-        let stderr = '';
-
-        pythonProcess.stdout.on('data', (data) => {
-            stdout += data.toString();
-        });
-
-        pythonProcess.stderr.on('data', (data) => {
-            stderr += data.toString();
-        });
-
-        pythonProcess.on('close', (code) => {
-            // Clean up temporary PDF file
-            try {
-                if (fs.existsSync(tempPdfPath)) {
-                    fs.unlinkSync(tempPdfPath);
-                }
-            } catch (cleanupErr) {
-                console.error("Error cleaning up temporary PDF:", cleanupErr);
-            }
-
-            if (code === 0) {
-                resolve(stdout);
-            } else {
-                reject(new Error(`Python Fast OCR exited with code ${code}.\nStderr: ${stderr}`));
-            }
-        });
-
-        pythonProcess.on('error', (err) => {
-            // Clean up temporary PDF file
-            try {
-                if (fs.existsSync(tempPdfPath)) {
-                    fs.unlinkSync(tempPdfPath);
-                }
-            } catch {
-                // ignore
-            }
-            reject(err);
-        });
-    });
+export async function extractPdfToMarkdown(pdfBuffer: Buffer): Promise<string> {
+    try {
+        console.log(`extractPdfToMarkdown: Starting extraction using pdf-parse. Buffer size: ${pdfBuffer.length} bytes`);
+        const data = await pdfParse(pdfBuffer);
+        console.log(`extractPdfToMarkdown: Successfully extracted ${data.numpages} pages.`);
+        return data.text;
+    } catch (err) {
+        console.error("Failed to extract text from PDF using pdf-parse:", err);
+        throw err;
+    }
 }
 
 /**
