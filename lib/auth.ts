@@ -4,6 +4,13 @@ import { db } from "@/db"; // your drizzle instance
 import { account, session, user, verification } from "@/db/schema/auth";
 
 export const auth = betterAuth({
+    trustedOrigins: process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : [],
+    advanced: {
+        defaultCookieAttributes: {
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+        }
+    },
     database: drizzleAdapter(db, {
         provider: "pg", // or "mysql", "sqlite"
         schema: {
