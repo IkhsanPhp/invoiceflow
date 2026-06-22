@@ -143,7 +143,7 @@ Schema:
     const userPrompt = `Extract and classify the pages from this document:\n\n[DOCUMENT START]\n${markdownContent}\n[DOCUMENT END]`;
     let assistantContent = "";
     
-    const provider = process.env.OCR_PROVIDER || 'ollama';
+    const provider = process.env.OCR_PROVIDER || 'gemini';
 
     if (provider === 'gemini') {
         const geminiApiKey = process.env.GEMINI_API_KEY;
