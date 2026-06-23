@@ -109,16 +109,16 @@ export function ProfileClient({ user, recentInvoices = [], vendorDetails = null 
 
     return (
         <Tabs defaultValue={defaultTab} onValueChange={handleTabChange} className="space-y-6">
-            <TabsList className="bg-zinc-100 dark:bg-zinc-900 border-b w-full justify-start rounded-none h-12 p-0 space-x-6">
+            <TabsList className="bg-zinc-100/80 dark:bg-zinc-800/80 p-1 rounded-xl grid grid-cols-2 max-w-sm mb-6">
                 <TabsTrigger 
                     value="account" 
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 rounded-none h-full px-4 font-medium"
+                    className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-950 data-[state=active]:text-emerald-600 dark:data-[state=active]:text-emerald-400 data-[state=active]:shadow-sm transition-all text-sm font-medium h-9"
                 >
                     Account
                 </TabsTrigger>
                 <TabsTrigger 
                     value="notifications" 
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 rounded-none h-full px-4 font-medium"
+                    className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-950 data-[state=active]:text-emerald-600 dark:data-[state=active]:text-emerald-400 data-[state=active]:shadow-sm transition-all text-sm font-medium h-9"
                 >
                     Notifications
                 </TabsTrigger>
@@ -196,28 +196,76 @@ export function ProfileClient({ user, recentInvoices = [], vendorDetails = null 
                                         </div>
                                     </>
                                 )}
+                                </div>
+                                {isVendor && vendorDetails && (
+                                    <div className="col-span-1 md:col-span-2 pt-6">
+                                        <div className="space-y-6 bg-zinc-50 dark:bg-zinc-900/30 p-6 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                                            <div>
+                                                <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-wider mb-4">Info Umum</h3>
+                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                                    <div>
+                                                        <Label className="text-xs text-zinc-500 mb-1 block">Account Group</Label>
+                                                        <p className="font-medium text-sm">{vendorDetails.accountGroup || "-"}</p>
+                                                    </div>
+                                                    <div>
+                                                        <Label className="text-xs text-zinc-500 mb-1 block">Mata Uang</Label>
+                                                        <p className="font-medium text-sm">{vendorDetails.orderCurrency || "-"}</p>
+                                                    </div>
+                                                    <div>
+                                                        <Label className="text-xs text-zinc-500 mb-1 block">Terms of Payment</Label>
+                                                        <p className="font-medium text-sm">{vendorDetails.termsOfPayment || "-"}</p>
+                                                    </div>
+                                                    <div>
+                                                        <Label className="text-xs text-zinc-500 mb-1 block">Incoterms</Label>
+                                                        <p className="font-medium text-sm">{vendorDetails.incoterms || "-"}</p>
+                                                    </div>
+                                                    <div>
+                                                        <Label className="text-xs text-zinc-500 mb-1 block">Min. Order Value</Label>
+                                                        <p className="font-medium text-sm">{vendorDetails.orderCurrency} {vendorDetails.minimumOrderValue || "0.00"}</p>
+                                                    </div>
+                                                    <div>
+                                                        <Label className="text-xs text-zinc-500 mb-1 block">Search Term</Label>
+                                                        <p className="font-medium text-sm">{vendorDetails.searchTerm || "-"}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                                                <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-wider mb-4">Lokasi & Kontak</h3>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                                    <div className="col-span-1 sm:col-span-2">
+                                                        <Label className="text-xs text-zinc-500 mb-1 block">Alamat Lengkap</Label>
+                                                        <p className="font-medium text-sm flex items-start gap-2">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400 mt-0.5 shrink-0"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                                                            {vendorDetails.street ? `${vendorDetails.street}, ${vendorDetails.city || ""}, ${vendorDetails.country || ""}, ${vendorDetails.postalCode || ""}` : "-"}
+                                                        </p>
+                                                    </div>
+                                                    <div>
+                                                        <Label className="text-xs text-zinc-500 mb-1 block">Salesperson</Label>
+                                                        <p className="font-medium text-sm">{vendorDetails.salesperson || "-"}</p>
+                                                    </div>
+                                                    <div>
+                                                        <Label className="text-xs text-zinc-500 mb-1 block">Telepon</Label>
+                                                        <p className="font-medium text-sm">{vendorDetails.telephone || "-"}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
 
-                                {isVendor && (
-                                    <>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="supplierCode">Supplier Code</Label>
-                                            <Input 
-                                                id="supplierCode" 
-                                                value={vendorDetails?.supplier || "Pending Verification"} 
-                                                disabled 
-                                                className="bg-zinc-100 dark:bg-zinc-900 text-zinc-500 cursor-not-allowed font-mono text-sm"
-                                            />
+                                            <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                                                <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-wider mb-4">Organisasi Pembelian</h3>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                                    <div>
+                                                        <Label className="text-xs text-zinc-500 mb-1 block">Kode Org.</Label>
+                                                        <p className="font-medium text-sm">{vendorDetails.purchOrganization || "-"}</p>
+                                                    </div>
+                                                    <div>
+                                                        <Label className="text-xs text-zinc-500 mb-1 block">Deskripsi Org.</Label>
+                                                        <p className="font-medium text-sm">{vendorDetails.purchOrgDescr || "-"}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="companyName">Company Name</Label>
-                                            <Input 
-                                                id="companyName" 
-                                                value={vendorDetails?.nameOfVendor || "Pending Verification"} 
-                                                disabled 
-                                                className="bg-zinc-100 dark:bg-zinc-900 text-zinc-500 cursor-not-allowed"
-                                            />
-                                        </div>
-                                    </>
+                                    </div>
                                 )}
                             </div>
 

@@ -12,7 +12,8 @@ import { Loader2, Eye, EyeOff, Building2, CheckCircle2 } from "lucide-react";
 function ResetPasswordForm() {
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
-    const [showPassword, setShowPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const [isSuccess, setIsSuccess] = useState(false);
@@ -90,7 +91,7 @@ function ResetPasswordForm() {
                     <div className="relative">
                         <Input
                             id="newPassword"
-                            type={showPassword ? "text" : "password"}
+                            type={showNewPassword ? "text" : "password"}
                             placeholder="Enter new password"
                             value={newPassword}
                             onChange={(e) => setNewPassword(e.target.value)}
@@ -100,10 +101,10 @@ function ResetPasswordForm() {
                         />
                         <button
                             type="button"
-                            onClick={() => setShowPassword(!showPassword)}
+                            onClick={() => setShowNewPassword(!showNewPassword)}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300 focus:outline-none"
                         >
-                            {showPassword ? (
+                            {showNewPassword ? (
                                 <EyeOff className="h-5 w-5" aria-hidden="true" />
                             ) : (
                                 <Eye className="h-5 w-5" aria-hidden="true" />
@@ -117,7 +118,7 @@ function ResetPasswordForm() {
                     <div className="relative">
                         <Input
                             id="confirmPassword"
-                            type={showPassword ? "text" : "password"}
+                            type={showConfirmPassword ? "text" : "password"}
                             placeholder="Confirm new password"
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
@@ -127,10 +128,10 @@ function ResetPasswordForm() {
                         />
                         <button
                             type="button"
-                            onClick={() => setShowPassword(!showPassword)}
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300 focus:outline-none"
                         >
-                            {showPassword ? (
+                            {showConfirmPassword ? (
                                 <EyeOff className="h-5 w-5" aria-hidden="true" />
                             ) : (
                                 <Eye className="h-5 w-5" aria-hidden="true" />
