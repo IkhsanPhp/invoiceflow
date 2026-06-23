@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { ProfileClient } from "./profile-client";
 import { db } from "@/db";
-import { invoices } from "@/db/schema/schema";
+import { invoices, vendors } from "@/db/schema/schema";
 import { eq, desc } from "drizzle-orm";
 
 export default async function ProfilePage() {
@@ -22,6 +22,17 @@ export default async function ProfilePage() {
         .orderBy(desc(invoices.updatedAt))
         .limit(10);
 
+    let vendorDetails = null;
+    if (session.user.role === "vendor") {
+        const vendorRec = await db.select()
+            .from(vendors)
+            .where(eq(vendors.userId, session.user.id))
+            .limit(1);
+        if (vendorRec.length > 0) {
+            vendorDetails = vendorRec[0];
+        }
+    }
+
     return (
         <div className="flex-1 space-y-4 p-8 pt-6">
             <div className="flex items-center justify-between space-y-2">
@@ -30,7 +41,7 @@ export default async function ProfilePage() {
             <p className="text-muted-foreground mb-8">
                 Manage your profile information and account security.
             </p>
-            <ProfileClient user={session.user} recentInvoices={userInvoices} />
+            <ProfileClient user={session.user} recentInvoices={userInvoices} vendorDetails={vendorDetails} />
         </div>
     );
 }

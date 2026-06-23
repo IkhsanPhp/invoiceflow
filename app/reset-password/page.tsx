@@ -125,6 +125,17 @@ function ResetPasswordForm() {
                             disabled={isLoading}
                             className="h-11 pr-10"
                         />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300 focus:outline-none"
+                        >
+                            {showPassword ? (
+                                <EyeOff className="h-5 w-5" aria-hidden="true" />
+                            ) : (
+                                <Eye className="h-5 w-5" aria-hidden="true" />
+                            )}
+                        </button>
                     </div>
                 </div>
             </div>

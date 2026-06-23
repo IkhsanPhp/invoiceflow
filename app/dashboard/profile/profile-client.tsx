@@ -15,12 +15,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 interface ProfileClientProps {
     user: any;
     recentInvoices?: any[];
+    vendorDetails?: any;
 }
 
-export function ProfileClient({ user, recentInvoices = [] }: ProfileClientProps) {
+export function ProfileClient({ user, recentInvoices = [], vendorDetails = null }: ProfileClientProps) {
     const searchParams = useSearchParams();
     const router = useRouter();
     const defaultTab = searchParams.get("tab") || "account";
+
+    const isVendor = user.role === "vendor";
 
     const [name, setName] = useState(user.name || "");
     const [jabatan, setJabatan] = useState("");
@@ -123,73 +126,107 @@ export function ProfileClient({ user, recentInvoices = [] }: ProfileClientProps)
 
             <TabsContent value="account" className="space-y-8">
                 {/* Profile Information Card */}
-                <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm">
-                    <CardHeader>
-                        <CardTitle>Profile Information</CardTitle>
-                        <CardDescription>Update your account details.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleUpdateProfile} className="space-y-6">
-                            {/* Photo Upload Section */}
-                            <div className="flex items-center gap-6 p-4 rounded-xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
-                                <Avatar className="h-20 w-20 rounded-2xl bg-blue-100 text-blue-600 font-bold text-2xl">
-                                    <AvatarImage src={user.image} />
-                                    <AvatarFallback className="rounded-2xl bg-blue-100 text-blue-600">{userInitials}</AvatarFallback>
-                                </Avatar>
-                                <div className="space-y-2">
-                                    <h4 className="font-medium text-sm text-zinc-900 dark:text-zinc-100">Foto Profil</h4>
-                                    <p className="text-xs text-zinc-500">Upload foto sendiri, atau biarkan sistem pakai avatar otomatis yang tetap keren di chat.</p>
-                                    <Button variant="outline" size="sm" type="button" className="mt-2 h-8">
-                                        <Upload className="w-4 h-4 mr-2" />
-                                        Upload Foto
-                                    </Button>
-                                </div>
+                <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+                    <div className="bg-gradient-to-r from-emerald-500 to-teal-600 h-24"></div>
+                    <CardHeader className="relative pt-0">
+                        <div className="absolute -top-12 left-6 border-4 border-white dark:border-zinc-950 rounded-full bg-white dark:bg-zinc-950">
+                            <Avatar className="h-24 w-24 rounded-full bg-emerald-100 text-emerald-700 font-bold text-3xl">
+                                <AvatarImage src={user.image} />
+                                <AvatarFallback className="rounded-full bg-emerald-100 text-emerald-700">{userInitials}</AvatarFallback>
+                            </Avatar>
+                        </div>
+                        <div className="flex justify-between items-start pt-14">
+                            <div>
+                                <CardTitle className="text-2xl">{user.name}</CardTitle>
+                                <CardDescription className="flex items-center mt-1">
+                                    <span className="capitalize px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-xs font-medium mr-2">{user.role}</span>
+                                    {user.email}
+                                </CardDescription>
                             </div>
-
-                            <div className="space-y-4">
+                            <Button variant="outline" size="sm" type="button" className="h-9">
+                                <Upload className="w-4 h-4 mr-2" />
+                                Change Photo
+                            </Button>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="mt-4">
+                        <form onSubmit={handleUpdateProfile} className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <Label htmlFor="name">Name</Label>
+                                    <Label htmlFor="name">Full Name</Label>
                                     <Input 
                                         id="name" 
                                         value={name} 
                                         onChange={(e) => setName(e.target.value)} 
                                         placeholder="Enter your name"
+                                        className="bg-zinc-50/50 dark:bg-zinc-900/50 focus-visible:ring-emerald-500"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="jabatan">Jabatan</Label>
-                                    <Input 
-                                        id="jabatan" 
-                                        value={jabatan} 
-                                        onChange={(e) => setJabatan(e.target.value)} 
-                                        placeholder="Contoh: Procurement Manager"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="department">Department</Label>
-                                    <Input 
-                                        id="department" 
-                                        value={department} 
-                                        onChange={(e) => setDepartment(e.target.value)} 
-                                        placeholder="Contoh: Finance"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="email">Email</Label>
+                                    <Label htmlFor="email">Email Address</Label>
                                     <Input 
                                         id="email" 
                                         value={user.email} 
                                         disabled 
-                                        className="bg-zinc-50 dark:bg-zinc-900 text-zinc-500"
+                                        className="bg-zinc-100 dark:bg-zinc-900 text-zinc-500 cursor-not-allowed"
                                     />
-                                    <p className="text-xs text-zinc-500 mt-1">Your email address cannot be changed.</p>
                                 </div>
+
+                                {!isVendor && (
+                                    <>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="jabatan">Job Title (Jabatan)</Label>
+                                            <Input 
+                                                id="jabatan" 
+                                                value={jabatan} 
+                                                onChange={(e) => setJabatan(e.target.value)} 
+                                                placeholder="e.g. Procurement Manager"
+                                                className="bg-zinc-50/50 dark:bg-zinc-900/50 focus-visible:ring-emerald-500"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="department">Department</Label>
+                                            <Input 
+                                                id="department" 
+                                                value={department} 
+                                                onChange={(e) => setDepartment(e.target.value)} 
+                                                placeholder="e.g. Finance"
+                                                className="bg-zinc-50/50 dark:bg-zinc-900/50 focus-visible:ring-emerald-500"
+                                            />
+                                        </div>
+                                    </>
+                                )}
+
+                                {isVendor && (
+                                    <>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="supplierCode">Supplier Code</Label>
+                                            <Input 
+                                                id="supplierCode" 
+                                                value={vendorDetails?.supplier || "Pending Verification"} 
+                                                disabled 
+                                                className="bg-zinc-100 dark:bg-zinc-900 text-zinc-500 cursor-not-allowed font-mono text-sm"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="companyName">Company Name</Label>
+                                            <Input 
+                                                id="companyName" 
+                                                value={vendorDetails?.nameOfVendor || "Pending Verification"} 
+                                                disabled 
+                                                className="bg-zinc-100 dark:bg-zinc-900 text-zinc-500 cursor-not-allowed"
+                                            />
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
-                            <Button type="submit" disabled={isUpdatingProfile} className="bg-purple-600 hover:bg-purple-700 text-white">
-                                {isUpdatingProfile && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Update Profile
-                            </Button>
+                            <div className="pt-2">
+                                <Button type="submit" disabled={isUpdatingProfile} className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">
+                                    {isUpdatingProfile && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Save Changes
+                                </Button>
+                            </div>
                         </form>
                     </CardContent>
                 </Card>
