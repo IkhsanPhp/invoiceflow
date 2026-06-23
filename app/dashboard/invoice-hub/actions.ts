@@ -919,10 +919,11 @@ export async function triggerBackgroundOcr(invoiceId: string, _fileUrl: string) 
             .from(invoiceDocuments)
             .where(eq(invoiceDocuments.invoiceId, invoiceId));
 
-        const { extractPdfToMarkdown, extractFieldsWithOllama } = await import("@/lib/ocr/ocr");
+        const { extractFieldsWithGeminiVision } = await import("@/lib/ocr/ocr");
         console.log(`triggerBackgroundOcr: Starting OCR text extraction for ${allDocs.length} documents under invoice ${invoiceId}`);
 
-        let combinedMarkdown = "";
+        const visionDocs: { docType: string; mimeType: string; base64: string }[] = [];
+
         for (const doc of allDocs) {
             try {
                 let arrayBuffer: ArrayBuffer;
@@ -945,23 +946,27 @@ export async function triggerBackgroundOcr(invoiceId: string, _fileUrl: string) 
                 }
 
                 const buffer = Buffer.from(arrayBuffer);
-                const markdown = await extractPdfToMarkdown(buffer);
-                console.log(`triggerBackgroundOcr: OCR text extraction complete for doc ${doc.id} (${doc.docType}). Markdown length: ${markdown.length}`);
+                const base64 = buffer.toString('base64');
+                const isPdf = doc.fileUrl.toLowerCase().endsWith('.pdf');
+                const mimeType = isPdf ? 'application/pdf' : 'image/jpeg';
 
-                // Gabungkan dengan penanda batas agar Ollama mengenali jenis dokumen per halaman dengan jelas
-                combinedMarkdown += `\n--- START DOCUMENT: ${doc.docType} ---\n${markdown}\n--- END DOCUMENT: ${doc.docType} ---\n`;
+                visionDocs.push({
+                    docType: doc.docType || 'invoice',
+                    mimeType,
+                    base64
+                });
             } catch (docErr) {
                 console.error(`Error processing document ${doc.id} (${doc.docType}) in triggerBackgroundOcr:`, docErr);
             }
         }
 
-        if (combinedMarkdown.trim().length === 0) {
-            throw new Error("No text was extracted from any of the uploaded documents.");
+        if (visionDocs.length === 0) {
+            throw new Error("Failed to load any documents for OCR extraction.");
         }
 
-        console.log("triggerBackgroundOcr: Starting Ollama classification and fields extraction on combined markdown...");
-        const extractedData = await extractFieldsWithOllama(combinedMarkdown);
-        console.log("triggerBackgroundOcr: Ollama extraction complete.");
+        console.log(`triggerBackgroundOcr: Starting Gemini Vision classification and fields extraction on ${visionDocs.length} documents...`);
+        const extractedData = await extractFieldsWithGeminiVision(visionDocs);
+        console.log("triggerBackgroundOcr: Gemini Vision extraction complete.");
 
         // Simpan hasil ke ocr_results
         const [ocrRecord] = await db.select()

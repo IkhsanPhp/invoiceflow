@@ -252,3 +252,104 @@ Schema:
         throw new Error(`Failed to parse Ollama extraction: ${message}`);
     }
 }
+
+/**
+ * Sends multiple document buffers directly to Gemini Vision API.
+ * This completely bypasses pdf-parse, avoiding failures on scanned documents,
+ * and allows Gemini's multimodal vision to natively "read" the documents.
+ */
+export async function extractFieldsWithGeminiVision(
+    documents: { docType: string; mimeType: string; base64: string }[]
+): Promise<MultiDocumentExtraction> {
+    const geminiApiKey = process.env.GEMINI_API_KEY;
+    if (!geminiApiKey) throw new Error("GEMINI_API_KEY is missing in environment variables.");
+    
+    // We use gemini-1.5-pro or gemini-2.5-flash as they support multimodal PDFs
+    const model = 'gemini-2.5-flash';
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
+
+    const parts: any[] = [
+        { text: `System Instruction: ${systemPrompt}` },
+        { text: `\nTask: Extract and classify the pages from these documents. They are provided below in sequence. Return ONLY a valid JSON object matching the requested schema.\n` }
+    ];
+
+    documents.forEach((doc, idx) => {
+        parts.push({ text: `\n--- START DOCUMENT ${idx + 1} (${doc.docType}) ---\n` });
+        parts.push({
+            inlineData: {
+                mimeType: doc.mimeType,
+                data: doc.base64
+            }
+        });
+        parts.push({ text: `\n--- END DOCUMENT ${idx + 1} (${doc.docType}) ---\n` });
+    });
+
+    console.log(`Sending ${documents.length} document(s) directly to Gemini Vision (${model}) API...`);
+    
+    const response = await fetch(geminiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            contents: [{ parts }]
+        }),
+        signal: AbortSignal.timeout(300000)
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Gemini Vision API error: ${response.status} ${response.statusText}\n${errorText}`);
+    }
+
+    const responseData = await response.json();
+    const assistantContent = responseData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+
+    if (!assistantContent) {
+        throw new Error(`Received empty response from Gemini Vision`);
+    }
+
+    console.log(`Gemini Vision raw output:`, assistantContent);
+
+    try {
+        let cleanJson = assistantContent.trim();
+        
+        const firstBrace = cleanJson.indexOf('{');
+        const lastBrace = cleanJson.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+            cleanJson = cleanJson.substring(firstBrace, lastBrace + 1);
+        } else if (cleanJson.startsWith('```')) {
+            cleanJson = cleanJson.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+        }
+
+        let data = JSON.parse(cleanJson);
+        if (!data || typeof data !== 'object') {
+            throw new Error('Parsed JSON is not an object');
+        }
+
+        if (!Array.isArray(data.documents)) {
+            console.warn('Gemini Vision response did not contain documents array, converting flat fields.');
+            data = {
+                documents: [
+                    {
+                        id: "doc-1",
+                        type: documents[0]?.docType || "invoice",
+                        pages: [1],
+                        data: {
+                            invoiceNumber: data.invoiceNumber || null,
+                            taxInvoiceNumber: data.taxInvoiceNumber || null,
+                            issueDate: data.issueDate || null,
+                            dueDate: data.dueDate || null,
+                            totalAmount: data.totalAmount || null,
+                            vendorName: data.vendorName || null
+                        }
+                    }
+                ]
+            };
+        }
+
+        return data as MultiDocumentExtraction;
+    } catch (parseErr: unknown) {
+        const message = parseErr instanceof Error ? parseErr.message : String(parseErr);
+        console.error('Failed to parse Gemini Vision output as JSON:', parseErr);
+        throw new Error(`Failed to parse Gemini Vision extraction: ${message}`);
+    }
+}
