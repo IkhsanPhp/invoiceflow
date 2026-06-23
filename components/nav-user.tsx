@@ -105,15 +105,11 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/dashboard/profile?tab=account")}>
                 <IconUserCircle />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <IconCreditCard />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/dashboard/profile?tab=notifications")}>
                 <IconNotification />
                 Notifications
               </DropdownMenuItem>
