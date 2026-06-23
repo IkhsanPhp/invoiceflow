@@ -435,6 +435,19 @@ export default function VendorsMasterPage() {
         setCurrentPage(1);
     }, [vendorsList, activeTab, searchQuery, accountGroupFilter, currencyFilter]);
 
+    // Fetch history when tab is opened
+    useEffect(() => {
+        if (detailsTab === "history" && selectedVendor) {
+            setIsLoadingHistory(true);
+            getVendorHistory(selectedVendor.id).then((res) => {
+                if (res.success) {
+                    setHistoryLogs({ logs: res.logs || [], updates: res.updates || [] });
+                }
+                setIsLoadingHistory(false);
+            });
+        }
+    }, [detailsTab, selectedVendor]);
+
     if (sessionPending || loadingMyPerms) {
         return (
             <div className="flex flex-1 items-center justify-center h-[60vh]">
@@ -479,18 +492,6 @@ export default function VendorsMasterPage() {
     }
 
     const activeSuppliersCount = vendorsList.filter(v => v.status === "Active").length;
-    // Fetch history when tab is opened
-    useEffect(() => {
-        if (detailsTab === "history" && selectedVendor) {
-            setIsLoadingHistory(true);
-            getVendorHistory(selectedVendor.id).then((res) => {
-                if (res.success) {
-                    setHistoryLogs({ logs: res.logs || [], updates: res.updates || [] });
-                }
-                setIsLoadingHistory(false);
-            });
-        }
-    }, [detailsTab, selectedVendor]);
 
     const pendingAuditCount = vendorsList.filter(v => v.status === "Pending Audit").length;
     const currenciesCount = new Set(vendorsList.map(v => v.orderCurrency).filter(Boolean)).size;
