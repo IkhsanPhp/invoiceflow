@@ -267,7 +267,7 @@ export function ProfileClient({ user, recentInvoices = [], vendorDetails = null 
                                         </div>
                                     </div>
                                 )}
-                            </div>
+                            
 
                             <div className="pt-2">
                                 <Button type="submit" disabled={isUpdatingProfile} className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">
