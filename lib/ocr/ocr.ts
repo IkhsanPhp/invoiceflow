@@ -63,19 +63,7 @@ export async function extractPdfToMarkdown(pdfBuffer: Buffer): Promise<string> {
     }
 }
 
-/**
- * Processes extracted Markdown text using Ollama's qwen3-vl model to extract structured invoice fields.
- */
-export async function extractFieldsWithOllama(markdownContent: string): Promise<MultiDocumentExtraction> {
-    const endpoint = process.env.OLLAMA_API_ENDPOINT || 'http://localhost:11434/api';
-    const apiKey = process.env.OLLAMA_API_KEY;
-    const model = process.env.OLLAMA_MODEL || 'qwen3-vl:235b-cloud';
-
-    const url = `${endpoint.replace(/\/$/, '')}/chat`;
-    
-    console.log(`Sending Markdown to Ollama at URL: ${url} using model: ${model}`);
-
-    const systemPrompt = `You are a precise JSON extractor and document classifier.
+const systemPrompt = `You are a precise JSON extractor and document classifier.
 Analyze the provided multi-page document written in Markdown. Pages are separated by lines like "--- PAGE %page-number% ---" where %page-number% is the page number.
 
 Your tasks:
@@ -140,6 +128,18 @@ Schema:
     }
   ]
 }`;
+
+/**
+ * Processes extracted Markdown text using Ollama's qwen3-vl model to extract structured invoice fields.
+ */
+export async function extractFieldsWithOllama(markdownContent: string): Promise<MultiDocumentExtraction> {
+    const endpoint = process.env.OLLAMA_API_ENDPOINT || 'http://localhost:11434/api';
+    const apiKey = process.env.OLLAMA_API_KEY;
+    const model = process.env.OLLAMA_MODEL || 'qwen3-vl:235b-cloud';
+
+    const url = `${endpoint.replace(/\/$/, '')}/chat`;
+    
+    console.log(`Sending Markdown to Ollama at URL: ${url} using model: ${model}`);
 
     const userPrompt = `Extract and classify the pages from this document:\n\n[DOCUMENT START]\n${markdownContent}\n[DOCUMENT END]`;
     let assistantContent = "";
