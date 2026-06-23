@@ -142,7 +142,7 @@ export default function VendorsMasterPage() {
     const [selectedVendor, setSelectedVendor] = useState<VendorItem | null>(null);
     const [selectedVendorDocs, setSelectedVendorDocs] = useState<VendorDocument[]>([]);
     const [isApproveOpen, setIsApproveOpen] = useState(false);
-    const [approveSupplierCode, setApproveSupplierCode] = useState("");
+    const [approveTop, setApproveTop] = useState("");
     const [isApproving, setIsApproving] = useState(false);
     const [editId, setEditId] = useState<string | null>(null);
     const [vendorToDelete, setVendorToDelete] = useState<VendorItem | null>(null);
@@ -1307,7 +1307,7 @@ export default function VendorsMasterPage() {
                                 {selectedVendor.status === "Pending Audit" && canUpdate && (
                                     <Button
                                         type="button"
-                                        onClick={() => { setApproveSupplierCode(""); setIsApproveOpen(true); }}
+                                        onClick={() => { setApproveTop(""); setIsApproveOpen(true); }}
                                         className="h-9 px-4 rounded-xl text-sm font-semibold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/20"
                                     >
                                         <CheckCircle2 className="h-4 w-4" /> Verifikasi & Setujui
@@ -1339,18 +1339,18 @@ export default function VendorsMasterPage() {
                             </div>
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white">Verifikasi Vendor</h3>
                             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                                Setujui registrasi <strong className="text-slate-700 dark:text-slate-300">{selectedVendor.nameOfVendor}</strong> dan masukkan kode supplier dari ERP.
+                                Setujui registrasi <strong className="text-slate-700 dark:text-slate-300">{selectedVendor.nameOfVendor}</strong> dan tentukan Term of Payment (TOP). Kode supplier akan dibuat otomatis.
                             </p>
                         </div>
 
                         <form onSubmit={async (e) => {
                             e.preventDefault();
-                            if (!approveSupplierCode.trim()) { alert("Kode Supplier wajib diisi!"); return; }
+                            if (!approveTop.trim()) { alert("Term of Payment wajib diisi!"); return; }
                             setIsApproving(true);
                             try {
-                                const res = await approveVendor(selectedVendor.id, approveSupplierCode.trim());
+                                const res = await approveVendor(selectedVendor.id, approveTop.trim());
                                 if (res.success) {
-                                    setMessage({ type: "success", text: `Vendor ${selectedVendor.nameOfVendor} berhasil diverifikasi dengan kode: ${approveSupplierCode}` });
+                                    setMessage({ type: "success", text: `Vendor ${selectedVendor.nameOfVendor} berhasil diverifikasi dengan TOP: ${approveTop} Hari` });
                                     setIsApproveOpen(false); setIsDetailsOpen(false); fetchVendors();
                                 } else { alert(res.error || "Gagal menyetujui vendor"); }
                             } catch (err) { console.error(err); alert("Terjadi kesalahan koneksi"); }
@@ -1358,19 +1358,21 @@ export default function VendorsMasterPage() {
                         }}>
                             <div className="p-6 space-y-4">
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="approveSupplier" className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                                        Kode Supplier ERP <span className="text-red-500">*</span>
+                                    <Label htmlFor="approveTop" className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                                        Term of Payment (TOP) / Hari <span className="text-red-500">*</span>
                                     </Label>
                                     <Input
-                                        id="approveSupplier"
-                                        value={approveSupplierCode}
-                                        onChange={e => setApproveSupplierCode(e.target.value)}
+                                        id="approveTop"
+                                        type="number"
+                                        min="0"
+                                        value={approveTop}
+                                        onChange={e => setApproveTop(e.target.value)}
                                         required
-                                        placeholder="Masukkan kode supplier ERP (e.g. 2000045)"
+                                        placeholder="Masukkan jumlah hari jatuh tempo (e.g. 30)"
                                         disabled={isApproving}
                                         className="h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 font-mono"
                                     />
-                                    <p className="text-[11px] text-slate-400">Pastikan kode sesuai dengan yang terdaftar pada sistem ERP finansial.</p>
+                                    <p className="text-[11px] text-slate-400">Jumlah hari untuk perhitungan otomatis jatuh tempo invoice dari vendor ini.</p>
                                 </div>
                             </div>
                             <div className="flex gap-3 px-6 pb-6">

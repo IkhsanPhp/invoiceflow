@@ -72,10 +72,8 @@ export async function getInvoiceHubData() {
         .where(eq(auditLogs.targetType, "Invoice"));
 
         const mappedResult = invoicesList.map(inv => {
-            const email = inv.vendorEmail || "";
-            const supplierMatch = email.match(/vendor\.(\d+)@/);
-            const supplierCode = supplierMatch ? supplierMatch[1] : null;
-            const vendorRecord = supplierCode ? allVendors.find(v => v.supplier === supplierCode) : null;
+            // Fetch vendor directly by userId
+            const vendorRecord = allVendors.find(v => v.userId === inv.vendorId);
             const termsOfPayment = vendorRecord ? vendorRecord.termsOfPayment : null;
 
             return {
@@ -134,23 +132,17 @@ export async function createInvoiceWithDocs(payload: {
         const invoiceId = crypto.randomUUID();
 
         // 1. Resolve TOP (Terms of Payment) from Vendors Master Data
-        const email = session.user.email;
-        const supplierMatch = email.match(/vendor\.(\d+)@/);
-        const supplierCode = supplierMatch ? supplierMatch[1] : null;
-
         let days = 30; // Default term
         let topLabel = "Net 30";
         
-        if (supplierCode) {
-            const [vendorRecord] = await db.select().from(vendors).where(eq(vendors.supplier, supplierCode)).limit(1);
-            if (vendorRecord && vendorRecord.termsOfPayment) {
+        const [vendorRecord] = await db.select().from(vendors).where(eq(vendors.userId, userId)).limit(1);
+        if (vendorRecord && vendorRecord.termsOfPayment) {
                 topLabel = vendorRecord.termsOfPayment;
                 // Parse numbers from TOP string (e.g. "Net 30" -> 30, "0015" -> 15)
                 const parsedDays = parseInt(topLabel.replace(/\D/g, ""), 10);
                 if (!isNaN(parsedDays) && parsedDays > 0) {
                     days = parsedDays;
                 }
-            }
         }
 
         // Calculate Due Date based on receipt date (upload date) + TOP days with scheduled ranges
@@ -233,6 +225,7 @@ export async function createInvoiceWithDocs(payload: {
         });
 
         // Pemicu pemrosesan OCR latar belakang secara asinkron (non-blocking)
+        const { triggerBackgroundOcr } = await import("@/app/dashboard/invoice-hub/actions");
         const invoiceDoc = payload.documents?.find(d => d.docType === "invoice");
         if (invoiceDoc) {
             triggerBackgroundOcr(invoiceId, invoiceDoc.fileUrl).catch(err => {
@@ -294,27 +287,20 @@ export async function submitVendorRevision(
         }
 
         // 1. Resolve TOP (Terms of Payment)
-        const email = session.user.email;
-        const supplierMatch = email.match(/vendor\.(\d+)@/);
-        const supplierCode = supplierMatch ? supplierMatch[1] : null;
-
         let days = 30;
         let topLabel = "30 Hari";
-        if (supplierCode) {
-            const [vendorRec] = await db.select().from(vendors).where(eq(vendors.code, supplierCode)).limit(1);
-            if (vendorRec && vendorRec.termsOfPayment) {
-                topLabel = vendorRec.termsOfPayment;
-                const parsedDays = parseInt(vendorRec.termsOfPayment.replace(/\D/g, ""));
-                if (!isNaN(parsedDays) && parsedDays > 0) {
-                    days = parsedDays;
-                }
+        const [vendorRec] = await db.select().from(vendors).where(eq(vendors.userId, session.user.id)).limit(1);
+        if (vendorRec && vendorRec.termsOfPayment) {
+            topLabel = vendorRec.termsOfPayment;
+            const parsedDays = parseInt(vendorRec.termsOfPayment.replace(/\D/g, ""));
+            if (!isNaN(parsedDays) && parsedDays > 0) {
+                days = parsedDays;
             }
         }
 
         const issueDateObj = new Date(payload.issueDate);
         const uploadDateObj = new Date();
-        const dueDateObj = new Date(uploadDateObj);
-        dueDateObj.setDate(dueDateObj.getDate() + days); // basic fallback, usually calculateScheduledDueDate is used but we'll inline it or re-import if needed
+        const dueDateObj = calculateScheduledDueDate(uploadDateObj, days);
 
         // 2. Update Invoice Record
         await db.update(invoices).set({
@@ -386,6 +372,7 @@ export async function submitVendorRevision(
         });
 
         // 6. Trigger OCR
+        const { triggerBackgroundOcr } = await import("@/app/dashboard/invoice-hub/actions");
         const invoiceDoc = payload.documents?.find(d => d.docType === "invoice");
         if (invoiceDoc) {
             triggerBackgroundOcr(invoiceId, invoiceDoc.fileUrl).catch(err => {
@@ -781,10 +768,7 @@ export async function getInvoiceById(invoiceId: string) {
         const checks = await db.select().from(verifications).where(eq(verifications.invoiceId, invoiceId));
         const allVendors = await db.select().from(vendors);
 
-        const email = inv.vendorEmail || "";
-        const supplierMatch = email.match(/vendor\.(\d+)@/);
-        const supplierCode = supplierMatch ? supplierMatch[1] : null;
-        const vendorRecord = supplierCode ? allVendors.find(v => v.supplier === supplierCode) : null;
+        const vendorRecord = allVendors.find(v => v.userId === inv.vendorId);
         const termsOfPayment = vendorRecord ? vendorRecord.termsOfPayment : null;
 
         const logs = await db.select({

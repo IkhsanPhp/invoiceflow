@@ -338,7 +338,7 @@ export async function getVendorDocuments(vendorId: string) {
     }
 }
 
-export async function approveVendor(vendorId: string, supplierCode: string) {
+export async function approveVendor(vendorId: string, termsOfPayment: string) {
     try {
         const session = await auth.api.getSession({
             headers: await headers()
@@ -351,15 +351,25 @@ export async function approveVendor(vendorId: string, supplierCode: string) {
             return { success: false, error: "Access denied: you do not have permission to verify/approve vendors." };
         }
 
-        // Check if supplier code is already in use by another vendor
-        const existing = await db.select().from(vendors).where(eq(vendors.supplier, supplierCode)).limit(1);
-        if (existing.length > 0 && existing[0].id !== vendorId) {
-            return { success: false, error: `Supplier code ${supplierCode} is already in use.` };
+        // Auto-generate supplier code starting from 200001
+        const allVendors = await db.select({ supplier: vendors.supplier }).from(vendors);
+        let maxSupplierCode = 200000;
+        for (const v of allVendors) {
+            if (v.supplier && !isNaN(Number(v.supplier))) {
+                const num = parseInt(v.supplier, 10);
+                if (num > maxSupplierCode) {
+                    maxSupplierCode = num;
+                }
+            }
         }
+        const supplierCode = (maxSupplierCode + 1).toString();
+
+        const formattedTop = `${termsOfPayment} Hari`;
 
         const updated = await db.update(vendors)
             .set({
                 supplier: supplierCode,
+                termsOfPayment: formattedTop,
                 status: "Active",
                 verifiedBy: session.user.id,
                 verifiedAt: new Date(),
