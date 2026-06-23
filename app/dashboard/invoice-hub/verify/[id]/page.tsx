@@ -798,7 +798,7 @@ export default function VerifyInvoicePage() {
             // Auto-populate GR Modal fields from OCR Result
             try {
                 if (invoice && Array.isArray(invoice.ocrResults) && invoice.ocrResults.length > 0) {
-                    const extracted = invoice.ocrResults[0]?.extractedData || {};
+                    const extracted = (invoice.ocrResults[0]?.extractedData as any) || {};
                     const docs = extracted.documents || [];
                     
                     const invData = docs.find((d: any) => d.type === 'invoice')?.data || extracted || {};
