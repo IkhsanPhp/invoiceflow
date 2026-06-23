@@ -45,6 +45,7 @@ export interface MultiDocumentExtraction {
     documents: ExtractedDocument[];
 }
 
+// @ts-expect-error - pdf-parse has no default export but is callable
 import pdfParse from 'pdf-parse';
 
 /**
