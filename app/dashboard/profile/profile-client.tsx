@@ -627,33 +627,34 @@ export function ProfileClient({ user, recentInvoices = [], vendorDetails, vendor
                                                                         <p className="text-xs text-slate-400">Anda belum pernah melakukan pembaruan profil.</p>
                                                                     </div>
                                                                 ) : (
-                                                                    <div className="relative space-y-6 before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 dark:before:via-slate-800 before:to-transparent">
+                                                                    <div className="relative pl-6 space-y-6 border-l-2 border-slate-200/60 dark:border-slate-800/80 ml-3">
                                                                         {[...historyLogs.updates.map(u => ({ type: 'update', date: new Date(u.submittedAt), data: u })), ...historyLogs.logs.map(l => ({ type: 'log', date: new Date(l.loggedAt), data: l }))]
                                                                             .sort((a, b) => b.date.getTime() - a.date.getTime())
-                                                                            .map((item, i) => (
-                                                                                <div key={i} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                                                                                    <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white dark:border-slate-900 bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
-                                                                                        {item.type === 'update' ? <Edit2 className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+                                                                            .map((item, i) => {
+                                                                                let title = item.type === 'update' ? `Pengajuan Update Profil (${item.data.status})` : item.data.action;
+                                                                                let iconBg = item.type === 'update' && item.data.status === 'rejected' ? 'bg-red-50 dark:bg-red-950/40 border-red-500' : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500';
+                                                                                let iconColor = item.type === 'update' && item.data.status === 'rejected' ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400';
+                                                                                
+                                                                                return (
+                                                                                <div key={i} className="relative group hover:opacity-90 transition-opacity">
+                                                                                    <div className={`absolute -left-[37px] top-0.5 rounded-full p-1.5 flex items-center justify-center shrink-0 shadow-sm border-2 border-dashed ${iconBg} ${iconColor}`}>
+                                                                                        {item.type === 'update' ? <Edit2 className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
                                                                                     </div>
-                                                                                    <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 shadow-sm">
-                                                                                        <div className="flex items-center justify-between mb-1">
-                                                                                            <h4 className="font-bold text-sm text-slate-900 dark:text-white">
-                                                                                                {item.type === 'update' 
-                                                                                                    ? `Pengajuan Update Profil (${item.data.status})` 
-                                                                                                    : item.data.action}
-                                                                                            </h4>
-                                                                                            <time className="text-xs font-medium text-slate-500">{item.date.toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' })}</time>
+                                                                                    <div className="space-y-1 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/60 p-3 rounded-xl shadow-sm hover:border-blue-100 transition-colors">
+                                                                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                                                                                            <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100">{title}</h4>
+                                                                                            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono tracking-tight bg-slate-50 dark:bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-100 dark:border-slate-800">{item.date.toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                                                                                         </div>
-                                                                                        <div className="text-xs text-slate-600 dark:text-slate-400">
+                                                                                        <div className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed max-w-[90%]">
                                                                                             {item.type === 'update' && item.data.status === 'rejected' && (
                                                                                                 <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded border border-red-100 dark:border-red-800">
-                                                                                                    <strong>Catatan Revisi:</strong> {item.data.revisionNotes}
+                                                                                                    <strong className="font-bold">Catatan Revisi:</strong> {item.data.revisionNotes}
                                                                                                 </div>
                                                                                             )}
                                                                                         </div>
                                                                                     </div>
                                                                                 </div>
-                                                                            ))}
+                                                                            )})}
                                                                     </div>
                                                                 )}
                                                             </>
