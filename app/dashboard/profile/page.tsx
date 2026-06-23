@@ -38,6 +38,19 @@ export default async function ProfilePage() {
         }
     }
 
+    let pendingUpdate = null;
+    if (vendorDetails) {
+        const { vendorProfileUpdates } = await import("@/db/schema/schema");
+        const updates = await db.select()
+            .from(vendorProfileUpdates)
+            .where(eq(vendorProfileUpdates.vendorId, vendorDetails.id))
+            .orderBy(desc(vendorProfileUpdates.submittedAt))
+            .limit(1);
+        if (updates.length > 0 && (updates[0].status === "pending" || updates[0].status === "rejected")) {
+            pendingUpdate = updates[0];
+        }
+    }
+
     return (
         <div className="flex-1 space-y-4 p-8 pt-6">
             <div className="flex items-center justify-between space-y-2">
@@ -46,7 +59,7 @@ export default async function ProfilePage() {
             <p className="text-muted-foreground mb-8">
                 Manage your profile information and account security.
             </p>
-            <ProfileClient user={session.user} recentInvoices={userInvoices} vendorDetails={vendorDetails} vendorDocs={vendorDocs} />
+            <ProfileClient user={session.user} recentInvoices={userInvoices} vendorDetails={vendorDetails} vendorDocs={vendorDocs} pendingUpdate={pendingUpdate} />
         </div>
     );
 }

@@ -74,35 +74,50 @@ export async function updateVendorProfile(data: any) {
             isBankAccountDiffName: data.isBankAccountDiffName,
             isAssetOwnerDiff: data.isAssetOwnerDiff,
             
-            updatedAt: new Date(),
+            // Documents
+            documents: data.documents || [],
         };
 
-        // Update the vendors table
-        await db.update(vendors)
-            .set(vendorUpdateData)
-            .where(eq(vendors.id, vendorRecord.id));
+        // Check if there's already a pending update, we can either overwrite it or reject the action.
+        // Let's overwrite any existing pending updates for this vendor to keep only the latest request.
+        const { vendorProfileUpdates } = await import("@/db/schema/schema");
+        await db.delete(vendorProfileUpdates).where(
+            eq(vendorProfileUpdates.vendorId, vendorRecord.id) && eq(vendorProfileUpdates.status, "pending")
+        );
 
-        // Update vendor documents if provided
-        if (data.documents && Array.isArray(data.documents)) {
-            // Delete old documents
-            await db.delete(vendorDocuments).where(eq(vendorDocuments.vendorId, vendorRecord.id));
-            
-            // Insert new documents
-            if (data.documents.length > 0) {
-                await db.insert(vendorDocuments).values(
-                    data.documents.map((doc: any) => ({
-                        vendorId: vendorRecord.id,
-                        docType: doc.docType,
-                        fileUrl: doc.fileUrl,
-                        fileName: doc.fileName,
-                        fileSize: doc.fileSize,
-                        uploadedAt: new Date(),
-                    }))
-                );
-            }
-        }
+        // Insert new pending update
+        await db.insert(vendorProfileUpdates).values({
+            vendorId: vendorRecord.id,
+            status: "pending",
+            submittedData: vendorUpdateData,
+        });
 
-        return { success: true };
+        // Trigger Notification to Procurement
+        const { notifications } = await import("@/db/schema/schema");
+        // We insert a system notification for the vendor themselves
+        await db.insert(notifications).values({
+            userId: vendorRecord.userId,
+            channel: "in_app",
+            eventType: "vendor_update_submitted",
+            payload: { message: "Your profile update has been submitted and is pending procurement review." },
+        });
+
+        // Trigger Email to Procurement (mock email log or real sending if configured)
+        const { sendEmail } = await import("@/lib/email");
+        await sendEmail({
+            to: "procurement@tmt.co.id", // Generic procurement email
+            subject: `[InvoiceFlow] Vendor Profile Update Pending Audit - ${vendorRecord.nameOfVendor}`,
+            body: `
+                <p>Hello Procurement Team,</p>
+                <p>Vendor <strong>${vendorRecord.nameOfVendor}</strong> has submitted profile updates.</p>
+                <p>Please log in to InvoiceFlow to review the changes and approve or reject them.</p>
+                <br/>
+                <p>Regards,<br/>InvoiceFlow System</p>
+            `,
+        }).catch(err => console.error("Email send failed (might be expected if SMTP not configured):", err));
+        
+        // Return success with a flag that it's pending audit
+        return { success: true, pendingAudit: true };
     } catch (error: any) {
         console.error("Failed to update vendor profile:", error);
         return { error: error.message || "Failed to update profile" };

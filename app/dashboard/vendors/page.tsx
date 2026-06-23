@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "@/lib/auth-client";
-import { getVendors, createVendor, updateVendor, deleteVendor, importVendors, getVendorDocuments, approveVendor } from "./actions";
+import { getVendors, createVendor, updateVendor, deleteVendor, importVendors, getVendorDocuments, approveVendor, getPendingUpdates, approveVendorUpdate, rejectVendorUpdate } from "./actions";
 import { getMyPermissions } from "@/app/dashboard/users/actions";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
@@ -135,7 +135,12 @@ export default function VendorsMasterPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-    const [activeTab, setActiveTab] = useState<"all" | "active" | "pending" | "archived">("all");
+    const [activeTab, setActiveTab] = useState<"all" | "active" | "pending" | "archived" | "updates">("all");
+    const [pendingUpdates, setPendingUpdates] = useState<any[]>([]);
+    const [isReviewUpdateOpen, setIsReviewUpdateOpen] = useState(false);
+    const [selectedUpdate, setSelectedUpdate] = useState<any | null>(null);
+    const [reviewNotes, setReviewNotes] = useState("");
+    const [isReviewing, setIsReviewing] = useState(false);
 
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -371,6 +376,12 @@ export default function VendorsMasterPage() {
         } else {
             setMessage({ type: "error", text: result.error || "Gagal memuat vendor" });
         }
+
+        const pendingRes = await getPendingUpdates();
+        if (pendingRes.success && pendingRes.pendingUpdates) {
+            setPendingUpdates(pendingRes.pendingUpdates);
+        }
+
         setIsLoading(false);
     };
 
@@ -739,21 +750,28 @@ export default function VendorsMasterPage() {
                         {[
                             { key: "all", label: "Semua", count: vendorsList.length },
                             { key: "active", label: "Aktif", count: activeSuppliersCount },
-                            { key: "pending", label: "Pending", count: pendingAuditCount },
+                            { key: "pending", label: "Pending Reg", count: pendingAuditCount },
+                            { key: "updates", label: "Pending Updates", count: pendingUpdates.length },
                             { key: "archived", label: "Diarsipkan", count: vendorsList.filter(v => v.status === "Archived").length },
                         ].map(tab => (
                             <button
                                 key={tab.key}
-                                onClick={() => setActiveTab(tab.key as "all" | "active" | "pending" | "archived")}
+                                onClick={() => setActiveTab(tab.key as "all" | "active" | "pending" | "archived" | "updates")}
                                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === tab.key
                                     ? "bg-blue-600 text-white shadow-sm"
                                     : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
                                     }`}
                             >
                                 {tab.label}
-                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${activeTab === tab.key ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"}`}>
-                                    {tab.count}
-                                </span>
+                                {tab.count > 0 && tab.key === "updates" ? (
+                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${activeTab === tab.key ? "bg-amber-400 text-amber-900" : "bg-amber-100 text-amber-600"}`}>
+                                        {tab.count}
+                                    </span>
+                                ) : (
+                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${activeTab === tab.key ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"}`}>
+                                        {tab.count}
+                                    </span>
+                                )}
                             </button>
                         ))}
                     </div>
@@ -804,6 +822,61 @@ export default function VendorsMasterPage() {
                                 </Button>
                             )}
                         </div>
+                    ) : activeTab === "updates" ? (
+                        <table className="w-full text-sm text-left">
+                            <thead>
+                                <tr className="border-y border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+                                    <th className="px-5 py-3 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Vendor</th>
+                                    <th className="px-5 py-3 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Email/PIC</th>
+                                    <th className="px-5 py-3 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Tanggal Submit</th>
+                                    <th className="px-5 py-3 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-5 py-3 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {pendingUpdates.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={5} className="px-5 py-8 text-center text-slate-400">Tidak ada pengajuan update profil.</td>
+                                    </tr>
+                                ) : (
+                                    pendingUpdates.map((update) => (
+                                        <tr key={update.id} className="border-b border-slate-100 dark:border-slate-800/70 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
+                                            <td className="px-5 py-4">
+                                                <div className="font-semibold text-slate-800 dark:text-slate-200">
+                                                    {update.vendorName || "Unknown Vendor"}
+                                                </div>
+                                                <div className="text-xs text-slate-400">{update.supplier || "No Supplier Code"}</div>
+                                            </td>
+                                            <td className="px-5 py-4">
+                                                <div className="text-sm">{update.vendorEmail || "-"}</div>
+                                                <div className="text-xs text-slate-400">{update.picEmail || "-"}</div>
+                                            </td>
+                                            <td className="px-5 py-4">
+                                                {new Date(update.submittedAt).toLocaleDateString("id-ID", { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                            </td>
+                                            <td className="px-5 py-4">
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800">
+                                                    Pending Review
+                                                </span>
+                                            </td>
+                                            <td className="px-5 py-4 text-right">
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setSelectedUpdate(update);
+                                                        setIsReviewUpdateOpen(true);
+                                                        setReviewNotes("");
+                                                    }}
+                                                    className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm font-semibold rounded-lg h-8"
+                                                >
+                                                    <Eye className="w-3.5 h-3.5 mr-1.5" /> Review
+                                                </Button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                     ) : (
                         <table className="w-full text-sm text-left">
                             <thead>
@@ -1496,6 +1569,95 @@ export default function VendorsMasterPage() {
                                     {isImporting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Mengimpor...</> : `Impor ${parsedRows.length} Baris`}
                                 </Button>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Review Update Modal */}
+            {isReviewUpdateOpen && selectedUpdate && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+                            <div>
+                                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">Review Vendor Profile Update</h2>
+                                <p className="text-sm text-slate-500">
+                                    {selectedUpdate.vendorName} is requesting to update their profile data.
+                                </p>
+                            </div>
+                            <button onClick={() => setIsReviewUpdateOpen(false)} className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800">
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+                        
+                        <div className="p-6 overflow-y-auto space-y-6">
+                            <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-300">Submitted Data Preview:</h3>
+                            <pre className="bg-slate-100 dark:bg-slate-950 p-4 rounded-xl text-xs text-slate-700 dark:text-slate-400 overflow-auto border border-slate-200 dark:border-slate-800 font-mono">
+                                {JSON.stringify(selectedUpdate.submittedData, null, 2)}
+                            </pre>
+                            
+                            <div className="space-y-2">
+                                <Label htmlFor="reviewNotes" className="text-sm font-semibold">Revision Notes (Required if Rejecting)</Label>
+                                <textarea
+                                    id="reviewNotes"
+                                    value={reviewNotes}
+                                    onChange={(e) => setReviewNotes(e.target.value)}
+                                    rows={3}
+                                    placeholder="Enter reasons for rejection if applicable..."
+                                    className="w-full text-sm p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/20"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+                            <Button 
+                                variant="outline" 
+                                onClick={() => setIsReviewUpdateOpen(false)}
+                                disabled={isReviewing}
+                                className="rounded-xl font-semibold h-10 px-5"
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                onClick={async () => {
+                                    if (!reviewNotes.trim()) {
+                                        setMessage({ type: "error", text: "Please provide revision notes to reject." });
+                                        return;
+                                    }
+                                    setIsReviewing(true);
+                                    const res = await rejectVendorUpdate(selectedUpdate.id, reviewNotes);
+                                    if (res.success) {
+                                        setMessage({ type: "success", text: "Update request rejected." });
+                                        setIsReviewUpdateOpen(false);
+                                        fetchVendors();
+                                    } else {
+                                        setMessage({ type: "error", text: res.error || "Failed to reject update." });
+                                    }
+                                    setIsReviewing(false);
+                                }}
+                                disabled={isReviewing}
+                                className="bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold h-10 px-5"
+                            >
+                                {isReviewing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <X className="w-4 h-4 mr-2" />} Reject
+                            </Button>
+                            <Button 
+                                onClick={async () => {
+                                    setIsReviewing(true);
+                                    const res = await approveVendorUpdate(selectedUpdate.id);
+                                    if (res.success) {
+                                        setMessage({ type: "success", text: "Vendor profile updated successfully." });
+                                        setIsReviewUpdateOpen(false);
+                                        fetchVendors();
+                                    } else {
+                                        setMessage({ type: "error", text: res.error || "Failed to approve update." });
+                                    }
+                                    setIsReviewing(false);
+                                }}
+                                disabled={isReviewing}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold shadow-md shadow-emerald-500/20 h-10 px-5"
+                            >
+                                {isReviewing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />} Approve
+                            </Button>
                         </div>
                     </div>
                 </div>

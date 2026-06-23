@@ -410,9 +410,199 @@ export async function approveVendor(vendorId: string, termsOfPayment: string) {
         }
 
         return { success: true, vendor: updated[0] };
-    } catch (error: unknown) {
-        const errMsg = error instanceof Error ? error.message : "Failed to approve vendor";
+    } catch (error: any) {
         console.error("Failed to approve vendor:", error);
-        return { success: false, error: errMsg };
+        return { success: false, error: error.message || "Failed to approve vendor" };
+    }
+}
+
+export async function getPendingUpdates() {
+    try {
+        const session = await auth.api.getSession({
+            headers: await headers()
+        });
+        if (!session || !session.user) {
+            return { success: false, error: "Unauthorized" };
+        }
+        const hasPerm = await checkPermission(session.user.id, session.user.role, "canAccess");
+        if (!hasPerm) {
+            return { success: false, error: "Access denied" };
+        }
+
+        const { vendorProfileUpdates } = await import("@/db/schema/schema");
+        // We fetch pending updates and join with vendors to get the vendor name/email
+        const pendingList = await db.select({
+            id: vendorProfileUpdates.id,
+            vendorId: vendorProfileUpdates.vendorId,
+            status: vendorProfileUpdates.status,
+            submittedData: vendorProfileUpdates.submittedData,
+            submittedAt: vendorProfileUpdates.submittedAt,
+            vendorName: vendors.nameOfVendor,
+            vendorEmail: vendors.emailCompany,
+            picEmail: vendors.picEmail,
+            supplier: vendors.supplier,
+        })
+        .from(vendorProfileUpdates)
+        .leftJoin(vendors, eq(vendorProfileUpdates.vendorId, vendors.id))
+        .where(eq(vendorProfileUpdates.status, "pending"))
+        .orderBy(desc(vendorProfileUpdates.submittedAt));
+
+        return { success: true, pendingUpdates: pendingList };
+    } catch (error: any) {
+        console.error("Failed to fetch pending updates:", error);
+        return { success: false, error: error.message || "Failed to fetch pending updates" };
+    }
+}
+
+export async function approveVendorUpdate(updateId: string) {
+    try {
+        const session = await auth.api.getSession({
+            headers: await headers()
+        });
+        if (!session || !session.user) return { success: false, error: "Unauthorized" };
+        
+        const hasPerm = await checkPermission(session.user.id, session.user.role, "canUpdate");
+        if (!hasPerm) return { success: false, error: "Access denied" };
+
+        const { vendorProfileUpdates } = await import("@/db/schema/schema");
+        
+        const updateRecs = await db.select().from(vendorProfileUpdates).where(eq(vendorProfileUpdates.id, updateId)).limit(1);
+        if (updateRecs.length === 0) throw new Error("Update request not found");
+        const updateReq = updateRecs[0];
+        if (updateReq.status !== "pending") throw new Error("Request is not pending");
+
+        const data: any = updateReq.submittedData;
+        
+        // 1. Update the master vendors table
+        const vendorUpdateData = {
+            accountGroup: data.accountGroup,
+            orderCurrency: data.orderCurrency,
+            termsOfPayment: data.termsOfPayment,
+            incoterms: data.incoterms,
+            minimumOrderValue: data.minimumOrderValue,
+            searchTerm: data.searchTerm,
+            street: data.street,
+            city: data.city,
+            country: data.country,
+            postalCode: data.postalCode,
+            salesperson: data.salesperson,
+            telephone: data.telephone,
+            purchOrganization: data.purchOrganization,
+            purchOrgDescr: data.purchOrgDescr,
+            vendorType: data.vendorType,
+            npwp: data.npwp,
+            nik: data.nik,
+            nib: data.nib,
+            pkpStatus: data.pkpStatus,
+            classification: data.classification,
+            flagPersonal: data.flagPersonal,
+            flagExEmployee: data.flagExEmployee,
+            flagPrincipal: data.flagPrincipal,
+            province: data.province,
+            emailCompany: data.emailCompany,
+            telephoneCompany: data.telephoneCompany,
+            picName: data.picName,
+            picEmail: data.picEmail,
+            picPhone: data.picPhone,
+            bankName: data.bankName,
+            bankAccountNo: data.bankAccountNo,
+            bankAccountName: data.bankAccountName,
+            isBankAccountDiffName: data.isBankAccountDiffName,
+            isAssetOwnerDiff: data.isAssetOwnerDiff,
+            updatedAt: new Date(),
+        };
+
+        await db.update(vendors).set(vendorUpdateData).where(eq(vendors.id, updateReq.vendorId));
+
+        // 2. Update documents
+        if (data.documents && Array.isArray(data.documents)) {
+            await db.delete(vendorDocuments).where(eq(vendorDocuments.vendorId, updateReq.vendorId));
+            if (data.documents.length > 0) {
+                await db.insert(vendorDocuments).values(
+                    data.documents.map((doc: any) => ({
+                        vendorId: updateReq.vendorId,
+                        docType: doc.docType,
+                        fileUrl: doc.fileUrl,
+                        fileName: doc.fileName,
+                        fileSize: doc.fileSize,
+                        uploadedAt: new Date(),
+                    }))
+                );
+            }
+        }
+
+        // 3. Mark update as approved
+        await db.update(vendorProfileUpdates).set({
+            status: "approved",
+            reviewedAt: new Date(),
+            reviewedBy: session.user.id,
+        }).where(eq(vendorProfileUpdates.id, updateId));
+
+        // 4. Notify vendor
+        const vendorData = await db.select().from(vendors).where(eq(vendors.id, updateReq.vendorId)).limit(1);
+        if (vendorData.length > 0) {
+            await db.insert(notifications).values({
+                userId: vendorData[0].userId!,
+                channel: "in_app",
+                eventType: "vendor_update_approved",
+                payload: { message: "Your profile update has been approved and your master data is updated." },
+            });
+            await sendEmail({
+                to: vendorData[0].emailCompany || vendorData[0].picEmail || "vendor@example.com",
+                subject: "[InvoiceFlow] Profile Update Approved",
+                body: `<p>Hello ${vendorData[0].nameOfVendor},</p><p>Your requested profile updates have been approved by the Procurement team. Your master data is now up to date in the system.</p>`,
+            }).catch(e => console.error("Email failed:", e));
+        }
+
+        return { success: true };
+    } catch (error: any) {
+        console.error("Failed to approve update:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function rejectVendorUpdate(updateId: string, notes: string) {
+    try {
+        const session = await auth.api.getSession({
+            headers: await headers()
+        });
+        if (!session || !session.user) return { success: false, error: "Unauthorized" };
+        const hasPerm = await checkPermission(session.user.id, session.user.role, "canUpdate");
+        if (!hasPerm) return { success: false, error: "Access denied" };
+
+        const { vendorProfileUpdates } = await import("@/db/schema/schema");
+        
+        const updateRecs = await db.select().from(vendorProfileUpdates).where(eq(vendorProfileUpdates.id, updateId)).limit(1);
+        if (updateRecs.length === 0) throw new Error("Update request not found");
+        const updateReq = updateRecs[0];
+
+        // 1. Mark as rejected
+        await db.update(vendorProfileUpdates).set({
+            status: "rejected",
+            revisionNotes: notes,
+            reviewedAt: new Date(),
+            reviewedBy: session.user.id,
+        }).where(eq(vendorProfileUpdates.id, updateId));
+
+        // 2. Notify vendor
+        const vendorData = await db.select().from(vendors).where(eq(vendors.id, updateReq.vendorId)).limit(1);
+        if (vendorData.length > 0) {
+            await db.insert(notifications).values({
+                userId: vendorData[0].userId!,
+                channel: "in_app",
+                eventType: "vendor_update_rejected",
+                payload: { message: "Your profile update requires revision. Please check your profile." },
+            });
+            await sendEmail({
+                to: vendorData[0].emailCompany || vendorData[0].picEmail || "vendor@example.com",
+                subject: "[InvoiceFlow] Profile Update Requires Revision",
+                body: `<p>Hello ${vendorData[0].nameOfVendor},</p><p>Your profile update was reviewed by the Procurement team and requires revisions.</p><p><strong>Revision Notes:</strong> ${notes}</p><p>Please log into InvoiceFlow and resubmit your update.</p>`,
+            }).catch(e => console.error("Email failed:", e));
+        }
+
+        return { success: true };
+    } catch (error: any) {
+        console.error("Failed to reject update:", error);
+        return { success: false, error: error.message };
     }
 }

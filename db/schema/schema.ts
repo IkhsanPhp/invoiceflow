@@ -230,3 +230,18 @@ export const emailLogs = pgTable("email_logs", {
     errorMsg: text("error_msg"),
     sentAt: timestamp("sent_at").$defaultFn(() => new Date()).notNull(),
 });
+export const vendorProfileUpdates = pgTable("vendor_profile_updates", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    vendorId: text("vendor_id")
+        .notNull()
+        .references(() => vendors.id, { onDelete: "cascade" }),
+    status: text("status").notNull(), // pending, approved, rejected
+    submittedData: jsonb("submitted_data").notNull(),
+    revisionNotes: text("revision_notes"),
+    submittedAt: timestamp("submitted_at")
+        .$defaultFn(() => new Date())
+        .notNull(),
+    reviewedAt: timestamp("reviewed_at"),
+    reviewedBy: text("reviewed_by")
+        .references(() => user.id, { onDelete: "set null" }),
+});

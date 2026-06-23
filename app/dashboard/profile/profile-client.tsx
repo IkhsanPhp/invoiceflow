@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Upload, Loader2, Eye, EyeOff, Trash2 } from "lucide-react";
+import { Upload, Loader2, Eye, EyeOff, Trash2, AlertTriangle } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { changePassword } from "@/lib/auth-client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -18,14 +18,18 @@ interface ProfileClientProps {
     recentInvoices?: any[];
     vendorDetails?: any;
     vendorDocs?: any[];
+    pendingUpdate?: any;
 }
 
-export function ProfileClient({ user, recentInvoices = [], vendorDetails = null, vendorDocs = [] }: ProfileClientProps) {
+export function ProfileClient({ user, recentInvoices = [], vendorDetails, vendorDocs = [], pendingUpdate }: ProfileClientProps) {
     const searchParams = useSearchParams();
     const router = useRouter();
     const defaultTab = searchParams.get("tab") || "account";
 
     const isVendor = user.role === "vendor";
+
+    // Vendor profile state - initialized from pendingUpdate if available, otherwise from vendorDetails
+    const initData = pendingUpdate ? pendingUpdate.submittedData : (vendorDetails || {});
 
     const [name, setName] = useState(user.name || "");
     const [jabatan, setJabatan] = useState("");
@@ -33,40 +37,40 @@ export function ProfileClient({ user, recentInvoices = [], vendorDetails = null,
     
     // Vendor profile state
     const [vendorForm, setVendorForm] = useState({
-        accountGroup: vendorDetails?.accountGroup || "",
-        orderCurrency: vendorDetails?.orderCurrency || "",
-        termsOfPayment: vendorDetails?.termsOfPayment || "",
-        incoterms: vendorDetails?.incoterms || "",
-        minimumOrderValue: vendorDetails?.minimumOrderValue || "",
-        searchTerm: vendorDetails?.searchTerm || "",
-        street: vendorDetails?.street || "",
-        city: vendorDetails?.city || "",
-        country: vendorDetails?.country || "",
-        postalCode: vendorDetails?.postalCode || "",
-        salesperson: vendorDetails?.salesperson || "",
-        telephone: vendorDetails?.telephone || "",
-        purchOrganization: vendorDetails?.purchOrganization || "",
-        purchOrgDescr: vendorDetails?.purchOrgDescr || "",
-        vendorType: vendorDetails?.vendorType || "",
-        npwp: vendorDetails?.npwp || "",
-        nik: vendorDetails?.nik || "",
-        nib: vendorDetails?.nib || "",
-        pkpStatus: vendorDetails?.pkpStatus || "",
-        classification: vendorDetails?.classification || "",
-        flagPersonal: vendorDetails?.flagPersonal || false,
-        flagExEmployee: vendorDetails?.flagExEmployee || false,
-        flagPrincipal: vendorDetails?.flagPrincipal || false,
-        province: vendorDetails?.province || "",
-        emailCompany: vendorDetails?.emailCompany || "",
-        telephoneCompany: vendorDetails?.telephoneCompany || "",
-        picName: vendorDetails?.picName || "",
-        picEmail: vendorDetails?.picEmail || "",
-        picPhone: vendorDetails?.picPhone || "",
-        bankName: vendorDetails?.bankName || "",
-        bankAccountNo: vendorDetails?.bankAccountNo || "",
-        bankAccountName: vendorDetails?.bankAccountName || "",
-        isBankAccountDiffName: vendorDetails?.isBankAccountDiffName || false,
-        isAssetOwnerDiff: vendorDetails?.isAssetOwnerDiff || false,
+        accountGroup: initData.accountGroup || "",
+        orderCurrency: initData.orderCurrency || "",
+        termsOfPayment: initData.termsOfPayment || "",
+        incoterms: initData.incoterms || "",
+        minimumOrderValue: initData.minimumOrderValue || "",
+        searchTerm: initData.searchTerm || "",
+        street: initData.street || "",
+        city: initData.city || "",
+        country: initData.country || "",
+        postalCode: initData.postalCode || "",
+        salesperson: initData.salesperson || "",
+        telephone: initData.telephone || "",
+        purchOrganization: initData.purchOrganization || "",
+        purchOrgDescr: initData.purchOrgDescr || "",
+        vendorType: initData.vendorType || "badan_usaha",
+        npwp: initData.npwp || "",
+        nik: initData.nik || "",
+        nib: initData.nib || "",
+        pkpStatus: initData.pkpStatus || "Non-PKP",
+        classification: initData.classification || "Kecil",
+        flagPersonal: initData.flagPersonal || false,
+        flagExEmployee: initData.flagExEmployee || false,
+        flagPrincipal: initData.flagPrincipal || false,
+        province: initData.province || "",
+        emailCompany: initData.emailCompany || "",
+        telephoneCompany: initData.telephoneCompany || "",
+        picName: initData.picName || "",
+        picEmail: initData.picEmail || "",
+        picPhone: initData.picPhone || "",
+        bankName: initData.bankName || "",
+        bankAccountNo: initData.bankAccountNo || "",
+        bankAccountName: initData.bankAccountName || "",
+        isBankAccountDiffName: initData.isBankAccountDiffName || false,
+        isAssetOwnerDiff: initData.isAssetOwnerDiff || false,
     });
 
     const [currentPassword, setCurrentPassword] = useState("");
@@ -83,7 +87,8 @@ export function ProfileClient({ user, recentInvoices = [], vendorDetails = null,
     const [vendorTab, setVendorTab] = useState("info_umum");
 
     // Documents state and upload
-    const [documents, setDocuments] = useState<any[]>(vendorDocs);
+    const initDocs = pendingUpdate && pendingUpdate.submittedData.documents ? pendingUpdate.submittedData.documents : vendorDocs;
+    const [documents, setDocuments] = useState<any[]>(initDocs);
     const [uploadingDoc, setUploadingDoc] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -272,8 +277,33 @@ export function ProfileClient({ user, recentInvoices = [], vendorDetails = null,
                                 Change Photo
                             </Button>
                         </div>
+                        <CardDescription>
+                            Pastikan data master vendor Anda sesuai dengan dokumen legal yang berlaku.
+                        </CardDescription>
                     </CardHeader>
-                    <CardContent className="mt-4">
+                    <CardContent className="space-y-6">
+                        {pendingUpdate && pendingUpdate.status === "pending" && (
+                            <Alert className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-300">
+                                <AlertDescription className="font-medium flex items-center gap-2">
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Data Anda sedang dalam proses verifikasi oleh tim Procurement (Pending Audit). Anda masih dapat mengubah data di bawah ini, namun persetujuan akhir bergantung pada tim Procurement.
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                        {pendingUpdate && pendingUpdate.status === "rejected" && (
+                            <Alert variant="destructive" className="bg-red-50 dark:bg-red-950/30">
+                                <AlertDescription className="font-medium flex flex-col gap-1">
+                                    <div className="flex items-center gap-2">
+                                        <AlertTriangle className="w-4 h-4" />
+                                        Pembaruan profil Anda sebelumnya ditolak. Silakan perbaiki dan simpan kembali.
+                                    </div>
+                                    <div className="text-sm mt-1 bg-red-100 dark:bg-red-900/50 p-2 rounded text-red-900 dark:text-red-200">
+                                        <strong>Catatan Revisi:</strong> {pendingUpdate.revisionNotes || "Tidak ada catatan."}
+                                    </div>
+                                </AlertDescription>
+                            </Alert>
+                        )}
+
                         <form onSubmit={handleUpdateProfile} className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
