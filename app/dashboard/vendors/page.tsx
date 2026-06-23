@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "@/lib/auth-client";
-import { getVendors, createVendor, updateVendor, deleteVendor, importVendors, getVendorDocuments, approveVendor, getPendingUpdates, approveVendorUpdate, rejectVendorUpdate } from "./actions";
+import { getVendors, createVendor, updateVendor, deleteVendor, importVendors, getVendorDocuments, approveVendor, getPendingUpdates, approveVendorUpdate, rejectVendorUpdate, getVendorHistory } from "./actions";
 import { getMyPermissions } from "@/app/dashboard/users/actions";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
@@ -146,12 +146,14 @@ export default function VendorsMasterPage() {
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [selectedVendor, setSelectedVendor] = useState<VendorItem | null>(null);
     const [selectedVendorDocs, setSelectedVendorDocs] = useState<VendorDocument[]>([]);
+    const [historyLogs, setHistoryLogs] = useState<{logs: any[], updates: any[]}>({ logs: [], updates: [] });
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [isApproveOpen, setIsApproveOpen] = useState(false);
     const [approveTop, setApproveTop] = useState("");
     const [isApproving, setIsApproving] = useState(false);
     const [editId, setEditId] = useState<string | null>(null);
     const [vendorToDelete, setVendorToDelete] = useState<VendorItem | null>(null);
-    const [detailsTab, setDetailsTab] = useState<"info" | "sop" | "documents">("info");
+    const [detailsTab, setDetailsTab] = useState<"info" | "sop" | "documents" | "history">("info");
 
     const [searchQuery, setSearchQuery] = useState("");
     const [accountGroupFilter, setAccountGroupFilter] = useState("all");
@@ -477,6 +479,19 @@ export default function VendorsMasterPage() {
     }
 
     const activeSuppliersCount = vendorsList.filter(v => v.status === "Active").length;
+    // Fetch history when tab is opened
+    useEffect(() => {
+        if (detailsTab === "history" && selectedVendor) {
+            setIsLoadingHistory(true);
+            getVendorHistory(selectedVendor.id).then((res) => {
+                if (res.success) {
+                    setHistoryLogs({ logs: res.logs || [], updates: res.updates || [] });
+                }
+                setIsLoadingHistory(false);
+            });
+        }
+    }, [detailsTab, selectedVendor]);
+
     const pendingAuditCount = vendorsList.filter(v => v.status === "Pending Audit").length;
     const currenciesCount = new Set(vendorsList.map(v => v.orderCurrency).filter(Boolean)).size;
 
@@ -1182,6 +1197,7 @@ export default function VendorsMasterPage() {
                                     { key: "info", label: "Info Umum", icon: Building2 },
                                     { key: "sop", label: "Data SOP", icon: FileText },
                                     { key: "documents", label: `Dokumen (${selectedVendorDocs.length})`, icon: Download },
+                                    { key: "history", label: "Riwayat", icon: Clock },
                                 ].map(tab => (
                                     <button
                                         key={tab.key}
@@ -1346,6 +1362,59 @@ export default function VendorsMasterPage() {
                                                 </div>
                                             );
                                         })
+                                    )}
+                                </div>
+                            )}
+
+                            {/* HISTORY TAB */}
+                            {detailsTab === "history" && (
+                                <div className="space-y-4">
+                                    {isLoadingHistory ? (
+                                        <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+                                            <Loader2 className="h-6 w-6 text-slate-400 animate-spin" />
+                                            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Memuat Riwayat...</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {historyLogs.updates.length === 0 && historyLogs.logs.length === 0 ? (
+                                                <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+                                                    <div className="h-12 w-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                                                        <Clock className="h-6 w-6 text-slate-400" />
+                                                    </div>
+                                                    <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Tidak Ada Riwayat</p>
+                                                    <p className="text-xs text-slate-400">Belum ada aktivitas tercatat untuk vendor ini.</p>
+                                                </div>
+                                            ) : (
+                                                <div className="relative space-y-6 before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 dark:before:via-slate-800 before:to-transparent">
+                                                    {[...historyLogs.updates.map(u => ({ type: 'update', date: new Date(u.submittedAt), data: u })), ...historyLogs.logs.map(l => ({ type: 'log', date: new Date(l.loggedAt), data: l }))]
+                                                        .sort((a, b) => b.date.getTime() - a.date.getTime())
+                                                        .map((item, i) => (
+                                                            <div key={i} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                                                                <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white dark:border-slate-900 bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
+                                                                    {item.type === 'update' ? <Edit2 className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+                                                                </div>
+                                                                <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 shadow-sm">
+                                                                    <div className="flex items-center justify-between mb-1">
+                                                                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                                                                            {item.type === 'update' 
+                                                                                ? `Pengajuan Update Profil (${item.data.status})` 
+                                                                                : item.data.action}
+                                                                        </h4>
+                                                                        <time className="text-xs font-medium text-slate-500">{item.date.toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' })}</time>
+                                                                    </div>
+                                                                    <div className="text-xs text-slate-600 dark:text-slate-400">
+                                                                        {item.type === 'update' && item.data.status === 'rejected' && (
+                                                                            <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded border border-red-100 dark:border-red-800">
+                                                                                <strong>Catatan Revisi:</strong> {item.data.revisionNotes}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                </div>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             )}
@@ -1591,10 +1660,34 @@ export default function VendorsMasterPage() {
                         </div>
                         
                         <div className="p-6 overflow-y-auto space-y-6">
-                            <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-300">Submitted Data Preview:</h3>
-                            <pre className="bg-slate-100 dark:bg-slate-950 p-4 rounded-xl text-xs text-slate-700 dark:text-slate-400 overflow-auto border border-slate-200 dark:border-slate-800 font-mono">
-                                {JSON.stringify(selectedUpdate.submittedData, null, 2)}
-                            </pre>
+                            <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-xl border border-slate-200 dark:border-slate-700 max-h-72 overflow-y-auto">
+                                <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-300 mb-4 border-b border-slate-200 dark:border-slate-700 pb-2">Informasi Umum & SOP</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
+                                    {Object.entries(selectedUpdate.submittedData || {}).filter(([k]) => k !== 'documents').map(([key, value]) => (
+                                        <div key={key} className="flex flex-col">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                            <span className="text-sm font-medium text-slate-800 dark:text-slate-200 break-words">{value !== null && value !== "" ? String(value) : "-"}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                
+                                {selectedUpdate.submittedData?.documents && selectedUpdate.submittedData.documents.length > 0 && (
+                                    <>
+                                        <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-300 mt-6 mb-4 border-b border-slate-200 dark:border-slate-700 pb-2">Dokumen Pendukung</h3>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            {selectedUpdate.submittedData.documents.map((doc: any, i: number) => (
+                                                <div key={i} className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                                    <div className="flex flex-col overflow-hidden">
+                                                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">{doc.docType}</span>
+                                                        <span className="text-[10px] text-slate-500 truncate">{doc.fileName}</span>
+                                                    </div>
+                                                    <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-xs font-medium shrink-0 ml-2">Lihat</a>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
                             
                             <div className="space-y-2">
                                 <Label htmlFor="reviewNotes" className="text-sm font-semibold">Revision Notes (Required if Rejecting)</Label>

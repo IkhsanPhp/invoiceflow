@@ -606,3 +606,21 @@ export async function rejectVendorUpdate(updateId: string, notes: string) {
         return { success: false, error: error.message };
     }
 }
+
+export async function getVendorHistory(vendorId: string) {
+    try {
+        const session = await auth.api.getSession({
+            headers: await headers()
+        });
+        if (!session || !session.user) return { success: false, error: "Unauthorized" };
+
+        const { auditLogs, vendorProfileUpdates } = await import("@/db/schema/schema");
+        
+        const logs = await db.select().from(auditLogs).where(eq(auditLogs.targetId, vendorId)).orderBy(desc(auditLogs.loggedAt));
+        const updates = await db.select().from(vendorProfileUpdates).where(eq(vendorProfileUpdates.vendorId, vendorId)).orderBy(desc(vendorProfileUpdates.submittedAt));
+        
+        return { success: true, logs, updates };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
