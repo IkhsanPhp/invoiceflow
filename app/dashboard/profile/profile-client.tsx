@@ -607,6 +607,7 @@ export function ProfileClient({ user, recentInvoices = [], vendorDetails, vendor
                                                             </div>
                                                         )}
                                                     </div>
+                                                )}
                                                 {vendorTab === "riwayat" && (
                                                     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                                         <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-wider mb-6">Riwayat Pembaruan Profil</h3>
