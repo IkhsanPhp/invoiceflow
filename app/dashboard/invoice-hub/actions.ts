@@ -781,6 +781,7 @@ export async function getInvoiceById(invoiceId: string) {
             loggedAt: auditLogs.loggedAt,
             userName: user.name,
             userEmail: user.email,
+            userRole: user.role,
         })
         .from(auditLogs)
         .leftJoin(user, eq(auditLogs.userId, user.id))

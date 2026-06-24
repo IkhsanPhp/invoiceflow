@@ -57,6 +57,7 @@ interface AuditLogItem {
     loggedAt: Date;
     userName: string | null;
     userEmail: string | null;
+    userRole: string | null;
 }
 
 interface OcrDocumentItem {
@@ -1163,7 +1164,14 @@ export default function InvoiceDetailsPage() {
                                             <div className="flex items-center gap-1.5 text-[9px] text-slate-400 dark:text-slate-500 pt-0.5 font-semibold">
                                                  <span>{log.userName || log.userEmail || "Sistem"}</span>
                                                  <span className="text-slate-300 dark:text-slate-800">•</span>
-                                                 <span className="italic">{(log.userEmail?.includes("vendor") || log.userEmail?.includes("rema")) ? "Aktor: Vendor" : "Aktor: Admin Pemeriksa"}</span>
+                                                 <span className="italic">
+                                                     Aktor: {
+                                                         log.userRole === "vendor" ? "Vendor" : 
+                                                         log.userRole === "procurement" ? "Admin Procurement" : 
+                                                         log.userRole === "finance" ? "Admin Finance" : 
+                                                         log.userRole === "admin" ? "Super Admin" : "Sistem"
+                                                     }
+                                                 </span>
                                             </div>
                                         </div>
                                     </div>

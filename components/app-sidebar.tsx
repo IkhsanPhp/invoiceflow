@@ -125,29 +125,24 @@ export function AppSidebar({
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 py-1 mt-2">
-            DASHBOARD
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Dashboard" asChild isActive={pathname === "/dashboard"}>
-                  <Link href="/dashboard" className="flex items-center gap-2">
-                    <IconDashboard className="h-4 w-4" />
-                    <span>Dashboard</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+      <SidebarContent className="px-3 gap-0">
+        <div className="py-2">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton tooltip="Dashboard" asChild isActive={pathname === "/dashboard"}>
+                <Link href="/dashboard" className="flex items-center gap-3">
+                  <IconDashboard className="h-5 w-5" />
+                  <span className="font-medium">Dashboard</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </div>
         
         {(showInvoiceHub || showMasterDataGroup) && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 py-1 mt-2">
-              MENU UTAMA
+          <SidebarGroup className="px-0">
+            <SidebarGroupLabel className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 py-2 mt-2">
+              SCM MANAGEMENT
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
@@ -215,9 +210,9 @@ export function AppSidebar({
         )}
 
         {(showUserManagement || showSettings) && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 py-1 mt-2">
-              KONFIGURASI
+          <SidebarGroup className="px-0">
+            <SidebarGroupLabel className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 py-2 mt-2">
+              BUSINESS & ANALYTICS
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
