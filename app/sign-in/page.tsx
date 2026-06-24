@@ -56,106 +56,121 @@ export default function SignInPage() {
         }
     };
 
-    return (
-        <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4">
-            <Card className="w-full max-w-4xl shadow-sm border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden flex flex-col md:flex-row">
+        <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4 md:p-8">
+            <Card className="w-full max-w-[1000px] shadow-xl border-0 overflow-hidden flex flex-col md:flex-row bg-white dark:bg-slate-900 rounded-2xl">
                 
-                {/* Left side - Logo Image */}
-                <div className="md:w-1/2 bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center p-12 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800">
-                    <div className="relative w-48 h-48 md:w-64 md:h-64">
+                {/* Left side - Branding Area */}
+                <div className="hidden md:flex md:w-[45%] bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-400 p-10 flex-col justify-between text-white relative">
+                    <div className="relative z-10">
                         <Image 
-                            src="/logo.png" 
-                            alt="Logo" 
-                            fill 
-                            className="object-contain drop-shadow-sm"
+                            src="/logo-chitra.png" 
+                            alt="Chitra Paratama" 
+                            width={160} 
+                            height={60} 
+                            className="object-contain brightness-0 invert"
                             priority
                         />
                     </div>
+                    <div className="relative z-10">
+                        <h1 className="text-4xl font-bold leading-tight tracking-tight">
+                            Empowering Procurement Through Digital Synergy.
+                        </h1>
+                    </div>
+                    {/* Decorative background element */}
+                    <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl mix-blend-overlay"></div>
+                    <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-48 h-48 bg-purple-900 opacity-20 rounded-full blur-2xl mix-blend-overlay"></div>
                 </div>
 
-                {/* Right side - Form */}
-                <div className="md:w-1/2 flex flex-col justify-center p-6 md:p-8">
-                    <CardHeader className="text-center space-y-2 pb-6 px-0">
-                        <CardTitle className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Welcome back</CardTitle>
-                        <CardDescription className="text-sm text-slate-500 dark:text-slate-400">
-                            Please enter your credentials to access your account
-                        </CardDescription>
-                    </CardHeader>
+                {/* Right side - Form Area */}
+                <div className="w-full md:w-[55%] flex flex-col justify-center p-8 md:p-14">
+                    <div className="mb-8">
+                        <div className="md:hidden mb-6 flex justify-center">
+                            <Image 
+                                src="/logo-chitra.png" 
+                                alt="Chitra Paratama" 
+                                width={140} 
+                                height={50} 
+                                className="object-contain"
+                            />
+                        </div>
+                        <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight mb-2">PROC-SHARE</h2>
+                        <h3 className="text-xl font-semibold text-blue-600 dark:text-blue-400 mb-3">All In One Vendor Portal</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                            Manage invoices, track payments, and monitor supply chain performance from a single dashboard.
+                        </p>
+                    </div>
 
-                    <CardContent className="px-0">
-                        <form onSubmit={handleSubmit} className="space-y-5">
-                            {error && (
-                                <Alert variant="destructive" className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-900 text-red-700 dark:text-red-400">
-                                    <AlertDescription>{error}</AlertDescription>
-                                </Alert>
-                            )}
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="email" className="text-slate-700 dark:text-slate-300">Email address</Label>
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {error && (
+                            <Alert variant="destructive" className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-900 text-red-700 dark:text-red-400">
+                                <AlertDescription>{error}</AlertDescription>
+                            </Alert>
+                        )}
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="email" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Your email</Label>
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    placeholder="vendor@company.com"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                    disabled={isLoading}
+                                    className="h-12 px-4 rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 focus-visible:ring-blue-600 transition-all"
+                                />
+                                <p className="text-[11px] text-slate-500 mt-1.5 leading-snug">
+                                    Gunakan email terdaftar Anda untuk masuk ke sistem PROC-SHARE.
+                                </p>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="password" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Password</Label>
+                                <div className="relative">
                                     <Input
-                                        id="email"
-                                        type="email"
-                                        placeholder="name@company.com"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
+                                        id="password"
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="••••••••••••"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
                                         required
                                         disabled={isLoading}
-                                        className="h-10 border-slate-300 dark:border-slate-700 focus-visible:ring-blue-600"
+                                        className="h-12 px-4 pr-10 rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 focus-visible:ring-blue-600 transition-all"
                                     />
-                                </div>
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <Label htmlFor="password" className="text-slate-700 dark:text-slate-300">Password</Label>
-                                        <Link href="/forgot-password" className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-                                            Forgot password?
-                                        </Link>
-                                    </div>
-                                    <div className="relative">
-                                        <Input
-                                            id="password"
-                                            type={showPassword ? "text" : "password"}
-                                            placeholder="Enter your password"
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            required
-                                            disabled={isLoading}
-                                            className="h-10 pr-10 border-slate-300 dark:border-slate-700 focus-visible:ring-blue-600"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 focus:outline-none"
-                                        >
-                                            {showPassword ? (
-                                                <EyeOff className="h-4 w-4" aria-hidden="true" />
-                                            ) : (
-                                                <Eye className="h-4 w-4" aria-hidden="true" />
-                                            )}
-                                        </button>
-                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 focus:outline-none transition-colors"
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff className="h-4 w-4" aria-hidden="true" />
+                                        ) : (
+                                            <Eye className="h-4 w-4" aria-hidden="true" />
+                                        )}
+                                    </button>
                                 </div>
                             </div>
-
-                            <Button type="submit" className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-medium" disabled={isLoading}>
-                                {isLoading ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Signing in...
-                                    </>
-                                ) : (
-                                    "Sign in"
-                                )}
-                            </Button>
-                        </form>
-                    </CardContent>
-                    <CardFooter className="flex justify-center border-t border-slate-100 dark:border-slate-800 pt-6 pb-0 px-0 mt-2">
-                        <div className="text-sm text-slate-500 dark:text-slate-400">
-                            New vendor partner?{" "}
-                            <Link href="/register-vendor" className="font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400">
-                                Register here
-                            </Link>
                         </div>
-                    </CardFooter>
+
+                        <Button type="submit" className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all shadow-md hover:shadow-lg" disabled={isLoading}>
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Signing in...
+                                </>
+                            ) : (
+                                "Sign In"
+                            )}
+                        </Button>
+                    </form>
+                    
+                    <div className="mt-8 flex flex-col sm:flex-row gap-3">
+                        <Button asChild variant="outline" className="w-full h-11 rounded-xl border-slate-200 dark:border-slate-800 font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
+                            <Link href="/register-vendor">Daftar Vendor Baru</Link>
+                        </Button>
+                        <Button asChild variant="outline" className="w-full h-11 rounded-xl border-slate-200 dark:border-slate-800 font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
+                            <Link href="/forgot-password">Reset Password</Link>
+                        </Button>
+                    </div>
                 </div>
             </Card>
         </div>
