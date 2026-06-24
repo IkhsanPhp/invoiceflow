@@ -46,7 +46,7 @@ export interface MultiDocumentExtraction {
 }
 
 // @ts-expect-error - pdf-parse has no default export but is callable
-import pdfParse from 'pdf-parse';
+const pdfParse = require('pdf-parse');
 
 /**
  * Extracts text content from a PDF file buffer using pure Node.js pdf-parse library.
