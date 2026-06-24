@@ -561,8 +561,10 @@ export async function approveVendorUpdate(updateId: string) {
             });
             await sendEmail({
                 to: vendorData[0].emailCompany || vendorData[0].picEmail || "vendor@example.com",
-                subject: "[InvoiceFlow] Profile Update Approved",
-                body: `<p>Hello ${vendorData[0].nameOfVendor},</p><p>Your requested profile updates have been approved by the Procurement team. Your master data is now up to date in the system.</p>`,
+                templateName: "vendor_update_approved",
+                placeholders: {
+                    vendorName: vendorData[0].nameOfVendor || "Vendor"
+                }
             }).catch(e => console.error("Email failed:", e));
         }
         // 5. Add audit log entry
@@ -615,8 +617,11 @@ export async function rejectVendorUpdate(updateId: string, notes: string) {
             });
             await sendEmail({
                 to: vendorData[0].emailCompany || vendorData[0].picEmail || "vendor@example.com",
-                subject: "[InvoiceFlow] Profile Update Requires Revision",
-                body: `<p>Hello ${vendorData[0].nameOfVendor},</p><p>Your profile update was reviewed by the Procurement team and requires revisions.</p><p><strong>Revision Notes:</strong> ${notes}</p><p>Please log into InvoiceFlow and resubmit your update.</p>`,
+                templateName: "vendor_update_revision",
+                placeholders: {
+                    vendorName: vendorData[0].nameOfVendor || "Vendor",
+                    revisionNotes: notes
+                }
             }).catch(e => console.error("Email failed:", e));
         }
 

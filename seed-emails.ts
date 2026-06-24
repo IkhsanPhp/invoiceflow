@@ -150,6 +150,44 @@ const templates = [
     </div>
 </div>
 `
+  },
+  {
+    name: 'vendor_update_approved',
+    subject: 'Pembaruan Profil Disetujui',
+    description: 'Dikirim saat pembaruan profil vendor disetujui',
+    body: `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; color: #1f2937;">
+    <div style="background-color: #10b981; padding: 24px; text-align: center;">
+        <h2 style="color: white; margin: 0; font-size: 24px;">Pembaruan Profil Disetujui</h2>
+    </div>
+    <div style="padding: 32px;">
+        <p style="font-size: 16px;">Halo <strong>{{vendorName}}</strong>,</p>
+        <p style="font-size: 16px; line-height: 1.5;">Pengajuan pembaruan data master vendor Anda telah disetujui oleh tim Procurement kami. Data master Anda kini sudah diperbarui di sistem.</p>
+        <p style="font-size: 16px; line-height: 1.5; margin-top: 24px;">Terima kasih atas kerja samanya dalam menjaga data Anda tetap up-to-date.</p>
+    </div>
+</div>
+`
+  },
+  {
+    name: 'vendor_update_revision',
+    subject: 'Diperlukan Revisi Pembaruan Profil',
+    description: 'Dikirim saat pembaruan profil vendor ditolak/butuh revisi',
+    body: `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; color: #1f2937;">
+    <div style="background-color: #f59e0b; padding: 24px; text-align: center;">
+        <h2 style="color: white; margin: 0; font-size: 24px;">Revisi Pembaruan Profil Diperlukan</h2>
+    </div>
+    <div style="padding: 32px;">
+        <p style="font-size: 16px;">Halo <strong>{{vendorName}}</strong>,</p>
+        <p style="font-size: 16px; line-height: 1.5;">Pengajuan pembaruan data master vendor Anda telah ditinjau oleh tim Procurement dan memerlukan beberapa perbaikan/revisi.</p>
+        <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; margin: 24px 0;">
+            <strong>Catatan Revisi:</strong><br/>
+            {{revisionNotes}}
+        </div>
+        <p style="font-size: 16px; line-height: 1.5; margin-top: 24px;">Silakan login ke Vendor Portal untuk mengajukan kembali perubahan profil Anda.</p>
+    </div>
+</div>
+`
   }
 ];
 
