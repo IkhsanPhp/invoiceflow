@@ -1209,14 +1209,25 @@ export async function rejectShippingReceipt(invoiceId: string, notes: string) {
 }
 
 
-export async function confirmPhysicalReceipt(invoiceId: string) {
+export async function confirmPhysicalReceipt(invoiceId: string, receiptData: any) {
     try {
         const session = await auth.api.getSession({ headers: await headers() });
         const userId = session?.user?.id;
 
+        const [invoice] = await db.select().from(invoices).where(eq(invoices.id, invoiceId)).limit(1);
+        if (!invoice) throw new Error("Invoice tidak ditemukan");
+
+        const currentShippingDetails = (invoice.shippingDetails as any) || {};
+        const updatedShippingDetails = {
+            ...currentShippingDetails,
+            receiptData: receiptData,
+            receiptConfirmedAt: new Date().toISOString()
+        };
+
         await db.update(invoices)
             .set({
                 status: "In Finance Verification",
+                shippingDetails: updatedShippingDetails,
                 updatedAt: new Date()
             })
             .where(eq(invoices.id, invoiceId));
@@ -1228,6 +1239,7 @@ export async function confirmPhysicalReceipt(invoiceId: string) {
                 action: "PHYSICAL_RECEIVED",
                 targetType: "Invoice",
                 targetId: invoiceId,
+                metadata: receiptData
             });
         }
         

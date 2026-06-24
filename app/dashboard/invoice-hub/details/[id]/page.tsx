@@ -139,27 +139,26 @@ export default function InvoiceDetailsPage() {
 
     const [resiFile, setResiFile] = useState<File | null>(null);
     const [resiNumber, setResiNumber] = useState("");
-    const [resiDate, setResiDate] = useState("");
     const [resiCourier, setResiCourier] = useState("");
     const [isSubmittingResi, setIsSubmittingResi] = useState(false);
     
     const [isProcurementConfirming, setIsProcurementConfirming] = useState(false);
     const [isRejectingShipping, setIsRejectingShipping] = useState(false);
     const [shippingRejectionNotes, setShippingRejectionNotes] = useState("");
+    const [shippingNotes, setShippingNotes] = useState("");
+
+    // Procurement shipping confirm
+    const [receiptDate, setReceiptDate] = useState("");
+    const [receiptFile, setReceiptFile] = useState<File | null>(null);
     const [showRejectShippingInput, setShowRejectShippingInput] = useState(false);
     
     const [financeNotesInput, setFinanceNotesInput] = useState("");
     const [isFinanceSubmitting, setIsFinanceSubmitting] = useState(false);
 
     const handleVendorSubmitResi = async () => {
-        if (!resiNumber || !resiDate || !resiCourier) {
-            setErrorMsg("Harap isi semua data pengiriman.");
-            return;
-        }
         setIsSubmittingResi(true);
-        const mockFileUrl = "https://example.com/resi-mock.pdf";
         const result = await submitShippingConfirmation(invoiceId, {
-            resiNumber, resiDate, resiCourier, resiFileUrl: mockFileUrl
+            shippingNotes
         });
         setIsSubmittingResi(false);
         if (result.success) loadInvoiceData();
@@ -167,8 +166,14 @@ export default function InvoiceDetailsPage() {
     };
 
     const handleProcurementConfirmReceipt = async () => {
+        if (!receiptDate) {
+            setErrorMsg("Tanggal terima harus diisi.");
+            return;
+        }
         setIsProcurementConfirming(true);
-        const result = await confirmPhysicalReceipt(invoiceId);
+        // Normally upload file here, mock for now
+        const mockFileUrl = receiptFile ? "https://example.com/receipt-mock.pdf" : null;
+        const result = await confirmPhysicalReceipt(invoiceId, { receiptDate, receiptFileUrl: mockFileUrl });
         setIsProcurementConfirming(false);
         if (result.success) loadInvoiceData();
         else setErrorMsg(result.error);
@@ -228,9 +233,7 @@ export default function InvoiceDetailsPage() {
                 const inv = res.invoice as InvoiceDetail;
                 setInvoice(inv);
                 if (inv.shippingDetails) {
-                    setResiNumber(inv.shippingDetails.resiNumber || "");
-                    setResiCourier(inv.shippingDetails.resiCourier || "");
-                    setResiDate(inv.shippingDetails.resiDate || "");
+                    setShippingNotes(inv.shippingDetails.shippingNotes || "");
                 }
             } else {
                 setErrorMsg(res.error || "Gagal memuat detail invoice.");
@@ -483,32 +486,23 @@ export default function InvoiceDetailsPage() {
                             <div>
                                 <h4 className="text-xs font-bold mb-1">Pengiriman Sebelumnya Ditolak</h4>
                                 <p className="text-[11px] font-medium leading-relaxed">{invoice.shippingDetails.rejectionNotes}</p>
-                                <p className="text-[10px] mt-1.5 opacity-80">Silakan perbaiki data di bawah dan kirim ulang.</p>
+                                <p className="text-[10px] mt-1.5 opacity-80">Silakan perbaiki dokumen dan konfirmasi ulang pengiriman.</p>
                             </div>
                         </div>
                     )}
-                    <p className="text-xs text-blue-700 dark:text-blue-300">Invoice telah diverifikasi Procurement. Harap kirim dokumen fisik ke kantor Chitra Pratama BPN dan masukkan detail resi pengiriman di bawah ini.</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                        <div className="space-y-1.5">
-                            <Label className="text-xs text-blue-900 dark:text-blue-200">Nomor Resi</Label>
-                            <Input className="text-xs h-8" value={resiNumber} onChange={(e) => setResiNumber(e.target.value)} />
-                        </div>
-                        <div className="space-y-1.5">
-                            <Label className="text-xs text-blue-900 dark:text-blue-200">Tanggal Pengiriman</Label>
-                            <Input type="date" className="text-xs h-8" value={resiDate} onChange={(e) => setResiDate(e.target.value)} />
-                        </div>
-                        <div className="space-y-1.5">
-                            <Label className="text-xs text-blue-900 dark:text-blue-200">Armada Pengiriman</Label>
-                            <Input className="text-xs h-8" placeholder="Misal: JNE, TIKI, Kurir Internal" value={resiCourier} onChange={(e) => setResiCourier(e.target.value)} />
-                        </div>
-                        <div className="space-y-1.5">
-                            <Label className="text-xs text-blue-900 dark:text-blue-200">Lampiran Resi</Label>
-                            <Input type="file" className="text-xs h-8" onChange={(e) => setResiFile(e.target.files?.[0] || null)} />
-                        </div>
+                    <p className="text-xs text-blue-700 dark:text-blue-300">Invoice telah diverifikasi Procurement. Harap kirim dokumen fisik ke kantor Chitra Pratama BPN.</p>
+                    <div className="mt-2">
+                        <Label className="text-xs text-blue-900 dark:text-blue-200 mb-1 block">Catatan Pengiriman (Opsional)</Label>
+                        <Textarea 
+                            placeholder="Tambahkan catatan jika ada..." 
+                            className="text-xs min-h-[80px]"
+                            value={shippingNotes}
+                            onChange={(e) => setShippingNotes(e.target.value)}
+                        />
                     </div>
                     <Button onClick={handleVendorSubmitResi} disabled={isSubmittingResi} className="mt-2 w-full sm:w-auto self-end bg-blue-600 hover:bg-blue-700 text-xs h-8">
                         {isSubmittingResi ? <Loader2 className="h-3 w-3 mr-2 animate-spin" /> : <Check className="h-3 w-3 mr-2" />}
-                        Kirim Konfirmasi Pengiriman
+                        Konfirmasi Pengiriman Dokumen Fisik
                     </Button>
                 </div>
             )}
@@ -523,31 +517,21 @@ export default function InvoiceDetailsPage() {
                         </div>
                     </div>
                     
-                    <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-amber-100 dark:border-amber-900/30">
-                        <h4 className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-2 border-b border-amber-100 pb-1">Detail Pengiriman Vendor</h4>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            <div>
-                                <p className="text-[9px] text-slate-400 uppercase font-semibold">Nomor Resi</p>
-                                <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{invoice.shippingDetails?.resiNumber || "-"}</p>
-                            </div>
-                            <div>
-                                <p className="text-[9px] text-slate-400 uppercase font-semibold">Kurir / Armada</p>
-                                <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{invoice.shippingDetails?.resiCourier || "-"}</p>
-                            </div>
-                            <div>
-                                <p className="text-[9px] text-slate-400 uppercase font-semibold">Tanggal Kirim</p>
-                                <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{invoice.shippingDetails?.resiDate || "-"}</p>
-                            </div>
-                            <div>
-                                <p className="text-[9px] text-slate-400 uppercase font-semibold">Bukti Pengiriman</p>
-                                {invoice.shippingDetails?.resiFileUrl ? (
-                                    <a href={invoice.shippingDetails.resiFileUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1">
-                                        <FileText className="h-3.5 w-3.5" /> Lihat Lampiran
-                                    </a>
-                                ) : (
-                                    <p className="text-xs font-semibold text-slate-500">Tidak ada lampiran</p>
-                                )}
-                            </div>
+                    {invoice.shippingDetails?.shippingNotes && (
+                        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-amber-100 dark:border-amber-900/30">
+                            <h4 className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-1 border-b border-amber-100 pb-1">Catatan Pengiriman Vendor</h4>
+                            <p className="text-xs text-slate-700 dark:text-slate-300 mt-2">{invoice.shippingDetails.shippingNotes}</p>
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <Label className="text-xs text-amber-900 dark:text-amber-200">Tanggal Terima Dokumen</Label>
+                            <Input type="date" className="text-xs h-8 bg-white" value={receiptDate} onChange={(e) => setReceiptDate(e.target.value)} />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs text-amber-900 dark:text-amber-200">Upload Dokumen Fisik (Scan)</Label>
+                            <Input type="file" accept=".pdf,.jpg,.jpeg,.png" className="text-xs h-8 bg-white" onChange={(e) => setReceiptFile(e.target.files?.[0] || null)} />
                         </div>
                     </div>
 
@@ -555,18 +539,18 @@ export default function InvoiceDetailsPage() {
                         <div className="flex justify-end gap-2 mt-1">
                             <Button onClick={() => setShowRejectShippingInput(true)} variant="outline" className="text-xs h-8 border-red-200 text-red-600 hover:bg-red-50">
                                 <X className="h-3 w-3 mr-1.5" />
-                                Tolak / Minta Revisi Resi
+                                Diterima dengan kondisi tidak lengkap
                             </Button>
                             <Button onClick={handleProcurementConfirmReceipt} disabled={isProcurementConfirming} className="bg-amber-600 hover:bg-amber-700 text-xs h-8">
                                 {isProcurementConfirming ? <Loader2 className="h-3 w-3 mr-2 animate-spin" /> : <Check className="h-3 w-3 mr-2" />}
-                                Konfirmasi Dokumen Diterima
+                                Diterima dengan kondisi lengkap
                             </Button>
                         </div>
                     ) : (
                         <div className="bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900/50 p-3 rounded-xl animate-in fade-in slide-in-from-top-2">
-                            <Label className="text-xs font-bold text-red-700 dark:text-red-400 mb-2 block">Catatan Penolakan / Revisi Pengiriman (Wajib)</Label>
+                            <Label className="text-xs font-bold text-red-700 dark:text-red-400 mb-2 block">Catatan Kekurangan Dokumen (Wajib)</Label>
                             <Textarea 
-                                placeholder="Contoh: Nomor resi tidak valid atau tidak bisa dilacak, harap periksa kembali..." 
+                                placeholder="Jelaskan dokumen apa saja yang kurang atau tidak sesuai..." 
                                 className="text-xs min-h-[80px] border-red-200 focus-visible:ring-red-500 mb-3"
                                 value={shippingRejectionNotes}
                                 onChange={(e) => setShippingRejectionNotes(e.target.value)}
@@ -575,7 +559,7 @@ export default function InvoiceDetailsPage() {
                                 <Button onClick={() => { setShowRejectShippingInput(false); setShippingRejectionNotes(""); }} variant="ghost" className="text-xs h-8 text-slate-500">Batal</Button>
                                 <Button onClick={handleRejectShippingReceipt} disabled={isRejectingShipping || !shippingRejectionNotes.trim()} className="bg-red-600 hover:bg-red-700 text-white text-xs h-8">
                                     {isRejectingShipping ? <Loader2 className="h-3 w-3 mr-2 animate-spin" /> : <AlertTriangle className="h-3 w-3 mr-2" />}
-                                    Tolak & Minta Revisi
+                                    Tolak & Minta Revisi Vendor
                                 </Button>
                             </div>
                         </div>
