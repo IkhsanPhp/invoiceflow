@@ -447,12 +447,24 @@ export async function getPendingUpdates() {
         .where(eq(vendorProfileUpdates.status, "pending"))
         .orderBy(desc(vendorProfileUpdates.submittedAt));
 
-        return { success: true, pendingUpdates: pendingList };
+        // Fetch current master data for each vendor to enable diff comparison
+        const enrichedList = await Promise.all(pendingList.map(async (update) => {
+            const currentVendor = await db.select().from(vendors).where(eq(vendors.id, update.vendorId)).limit(1);
+            const currentDocs = await db.select().from(vendorDocuments).where(eq(vendorDocuments.vendorId, update.vendorId));
+            return {
+                ...update,
+                currentData: currentVendor.length > 0 ? currentVendor[0] : null,
+                currentDocs: currentDocs,
+            };
+        }));
+
+        return { success: true, pendingUpdates: enrichedList };
     } catch (error: any) {
         console.error("Failed to fetch pending updates:", error);
         return { success: false, error: error.message || "Failed to fetch pending updates" };
     }
 }
+
 
 export async function approveVendorUpdate(updateId: string) {
     try {
@@ -553,6 +565,13 @@ export async function approveVendorUpdate(updateId: string) {
                 body: `<p>Hello ${vendorData[0].nameOfVendor},</p><p>Your requested profile updates have been approved by the Procurement team. Your master data is now up to date in the system.</p>`,
             }).catch(e => console.error("Email failed:", e));
         }
+        // 5. Add audit log entry
+        await db.insert(auditLogs).values({
+            action: "VENDOR_UPDATE_APPROVED",
+            performedBy: session.user.id,
+            targetId: updateReq.vendorId,
+            details: { updateId, approvedBy: session.user.name || session.user.email },
+        });
 
         return { success: true };
     } catch (error: any) {
@@ -599,6 +618,14 @@ export async function rejectVendorUpdate(updateId: string, notes: string) {
                 body: `<p>Hello ${vendorData[0].nameOfVendor},</p><p>Your profile update was reviewed by the Procurement team and requires revisions.</p><p><strong>Revision Notes:</strong> ${notes}</p><p>Please log into InvoiceFlow and resubmit your update.</p>`,
             }).catch(e => console.error("Email failed:", e));
         }
+
+        // 3. Add audit log entry
+        await db.insert(auditLogs).values({
+            action: "VENDOR_UPDATE_REVISION",
+            performedBy: session.user.id,
+            targetId: updateReq.vendorId,
+            details: { updateId, revisionNotes: notes, reviewedBy: session.user.name || session.user.email },
+        });
 
         return { success: true };
     } catch (error: any) {

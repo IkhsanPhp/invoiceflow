@@ -1646,14 +1646,50 @@ export default function VendorsMasterPage() {
             )}
 
             {/* Review Update Modal */}
-            {isReviewUpdateOpen && selectedUpdate && (
+            {isReviewUpdateOpen && selectedUpdate && (() => {
+                const submitted: any = selectedUpdate.submittedData || {};
+                const current: any = selectedUpdate.currentData || {};
+
+                // Field label mapping
+                const fieldLabels: Record<string, string> = {
+                    nib: "NIB", nik: "NIK", npwp: "NPWP",
+                    city: "Kota", street: "Alamat", country: "Negara", province: "Provinsi", postalCode: "Kode Pos",
+                    picName: "Nama PIC", picEmail: "Email PIC", picPhone: "Telepon PIC",
+                    bankName: "Nama Bank", bankAccountNo: "No. Rekening", bankAccountName: "Nama Pemilik Rekening",
+                    emailCompany: "Email Perusahaan", telephoneCompany: "Telepon Perusahaan",
+                    vendorType: "Tipe Vendor", pkpStatus: "Status PKP", classification: "Klasifikasi",
+                    accountGroup: "Account Group", orderCurrency: "Mata Uang", termsOfPayment: "Terms of Payment",
+                    incoterms: "Incoterms", searchTerm: "Search Term", salesperson: "Salesperson",
+                    telephone: "Telepon", purchOrganization: "Purchasing Organization", purchOrgDescr: "Deskripsi Purch. Org",
+                    minimumOrderValue: "Minimum Order Value",
+                    flagPersonal: "Flag Personal", flagExEmployee: "Flag Ex-Employee", flagPrincipal: "Flag Principal",
+                    isBankAccountDiffName: "Rek. Beda Nama", isAssetOwnerDiff: "Pemilik Aset Berbeda",
+                    nameOfVendor: "Nama Vendor",
+                };
+
+                // Compare fields - only show fields that exist in submittedData (excluding documents)
+                const fieldKeys = Object.keys(submitted).filter(k => k !== 'documents');
+                const changedFields: string[] = [];
+                const unchangedFields: string[] = [];
+
+                fieldKeys.forEach(key => {
+                    const submittedVal = String(submitted[key] ?? "");
+                    const currentVal = String(current[key] ?? "");
+                    if (submittedVal !== currentVal) {
+                        changedFields.push(key);
+                    } else {
+                        unchangedFields.push(key);
+                    }
+                });
+
+                return (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
                             <div>
-                                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">Review Vendor Profile Update</h2>
+                                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">Review Perubahan Data Vendor</h2>
                                 <p className="text-sm text-slate-500">
-                                    {selectedUpdate.vendorName} is requesting to update their profile data.
+                                    <strong>{selectedUpdate.vendorName}</strong> mengajukan perubahan data profil.
                                 </p>
                             </div>
                             <button onClick={() => setIsReviewUpdateOpen(false)} className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800">
@@ -1662,43 +1698,107 @@ export default function VendorsMasterPage() {
                         </div>
                         
                         <div className="p-6 overflow-y-auto space-y-6">
-                            <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-xl border border-slate-200 dark:border-slate-700 max-h-72 overflow-y-auto">
-                                <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-300 mb-4 border-b border-slate-200 dark:border-slate-700 pb-2">Informasi Umum & SOP</h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
-                                    {Object.entries(selectedUpdate.submittedData || {}).filter(([k]) => k !== 'documents').map(([key, value]) => (
-                                        <div key={key} className="flex flex-col">
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                                            <span className="text-sm font-medium text-slate-800 dark:text-slate-200 break-words">{value !== null && value !== "" ? String(value) : "-"}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                                
-                                {selectedUpdate.submittedData?.documents && selectedUpdate.submittedData.documents.length > 0 && (
-                                    <>
-                                        <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-300 mt-6 mb-4 border-b border-slate-200 dark:border-slate-700 pb-2">Dokumen Pendukung</h3>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            {selectedUpdate.submittedData.documents.map((doc: any, i: number) => (
-                                                <div key={i} className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
-                                                    <div className="flex flex-col overflow-hidden">
-                                                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">{doc.docType}</span>
-                                                        <span className="text-[10px] text-slate-500 truncate">{doc.fileName}</span>
-                                                    </div>
-                                                    <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-xs font-medium shrink-0 ml-2">Lihat</a>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </>
-                                )}
+                            {/* Summary badge */}
+                            <div className="flex items-center gap-3">
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                    <Edit2 className="h-3 w-3" />
+                                    {changedFields.length} field diubah
+                                </span>
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-50 text-slate-500 border border-slate-200">
+                                    {unchangedFields.length} field tidak berubah
+                                </span>
                             </div>
+
+                            {/* Changed Fields Section */}
+                            {changedFields.length > 0 && (
+                                <div>
+                                    <h3 className="font-semibold text-sm text-amber-700 dark:text-amber-400 mb-3 flex items-center gap-2">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        Data yang Diubah
+                                    </h3>
+                                    <div className="space-y-3">
+                                        {changedFields.map(key => {
+                                            const label = fieldLabels[key] || key.replace(/([A-Z])/g, ' $1').trim();
+                                            const oldVal = current[key];
+                                            const newVal = submitted[key];
+                                            const displayOld = (oldVal !== null && oldVal !== undefined && oldVal !== "") ? String(oldVal) : "—";
+                                            const displayNew = (newVal !== null && newVal !== undefined && newVal !== "") ? String(newVal) : "—";
+                                            return (
+                                                <div key={key} className="bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 rounded-xl p-3">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">{label}</span>
+                                                        <span className="text-[9px] font-bold bg-amber-500 text-white px-1.5 py-0.5 rounded">DIUBAH</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div className="bg-white dark:bg-slate-900 border border-red-100 dark:border-red-900/30 rounded-lg p-2.5">
+                                                            <span className="text-[9px] font-bold text-red-400 uppercase block mb-1">Data Lama</span>
+                                                            <span className="text-sm font-medium text-red-700 dark:text-red-400 line-through break-words">{displayOld}</span>
+                                                        </div>
+                                                        <div className="bg-white dark:bg-slate-900 border border-emerald-100 dark:border-emerald-900/30 rounded-lg p-2.5">
+                                                            <span className="text-[9px] font-bold text-emerald-500 uppercase block mb-1">Data Baru</span>
+                                                            <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 break-words">{displayNew}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Unchanged Fields Section (collapsed) */}
+                            {unchangedFields.length > 0 && (
+                                <details className="group">
+                                    <summary className="cursor-pointer font-semibold text-sm text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2 hover:text-slate-700 transition-colors">
+                                        <CheckCircle2 className="h-4 w-4 text-slate-400" />
+                                        Data yang Tidak Berubah ({unchangedFields.length} field)
+                                        <span className="text-[10px] text-slate-400 ml-auto">Klik untuk lihat</span>
+                                    </summary>
+                                    <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 mt-2">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6">
+                                            {unchangedFields.map(key => {
+                                                const label = fieldLabels[key] || key.replace(/([A-Z])/g, ' $1').trim();
+                                                const val = current[key];
+                                                const displayVal = (val !== null && val !== undefined && val !== "") ? String(val) : "—";
+                                                return (
+                                                    <div key={key} className="flex flex-col">
+                                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label}</span>
+                                                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300 break-words">{displayVal}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </details>
+                            )}
                             
+                            {/* Documents section */}
+                            {submitted.documents && submitted.documents.length > 0 && (
+                                <>
+                                    <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-300 mt-2 mb-3 border-t border-slate-200 dark:border-slate-700 pt-4">Dokumen Pendukung</h3>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {submitted.documents.map((doc: any, i: number) => (
+                                            <div key={i} className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                                <div className="flex flex-col overflow-hidden">
+                                                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">{doc.docType}</span>
+                                                    <span className="text-[10px] text-slate-500 truncate">{doc.fileName}</span>
+                                                </div>
+                                                <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-xs font-medium shrink-0 ml-2">Lihat</a>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+
+                            {/* Revision Notes */}
                             <div className="space-y-2">
-                                <Label htmlFor="reviewNotes" className="text-sm font-semibold">Revision Notes (Required if Rejecting)</Label>
+                                <Label htmlFor="reviewNotes" className="text-sm font-semibold">Catatan Revisi (Wajib diisi jika Revisi)</Label>
                                 <textarea
                                     id="reviewNotes"
                                     value={reviewNotes}
                                     onChange={(e) => setReviewNotes(e.target.value)}
                                     rows={3}
-                                    placeholder="Enter reasons for rejection if applicable..."
+                                    placeholder="Masukkan alasan revisi jika ada..."
                                     className="w-full text-sm p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/20"
                                 />
                             </div>
@@ -1711,52 +1811,55 @@ export default function VendorsMasterPage() {
                                 disabled={isReviewing}
                                 className="rounded-xl font-semibold h-10 px-5"
                             >
-                                Cancel
+                                Batal
                             </Button>
                             <Button 
                                 onClick={async () => {
                                     if (!reviewNotes.trim()) {
-                                        setMessage({ type: "error", text: "Please provide revision notes to reject." });
+                                        setMessage({ type: "error", text: "Harap isi catatan revisi terlebih dahulu." });
                                         return;
                                     }
                                     setIsReviewing(true);
                                     const res = await rejectVendorUpdate(selectedUpdate.id, reviewNotes);
                                     if (res.success) {
-                                        setMessage({ type: "success", text: "Update request rejected." });
+                                        setMessage({ type: "success", text: "Pengajuan berhasil direvisi." });
                                         setIsReviewUpdateOpen(false);
+                                        setReviewNotes("");
                                         fetchVendors();
                                     } else {
-                                        setMessage({ type: "error", text: res.error || "Failed to reject update." });
+                                        setMessage({ type: "error", text: res.error || "Gagal melakukan revisi." });
                                     }
                                     setIsReviewing(false);
                                 }}
                                 disabled={isReviewing}
-                                className="bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold h-10 px-5"
+                                className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-semibold h-10 px-5"
                             >
-                                {isReviewing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <X className="w-4 h-4 mr-2" />} Reject
+                                {isReviewing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Edit2 className="w-4 h-4 mr-2" />} Revisi
                             </Button>
                             <Button 
                                 onClick={async () => {
                                     setIsReviewing(true);
                                     const res = await approveVendorUpdate(selectedUpdate.id);
                                     if (res.success) {
-                                        setMessage({ type: "success", text: "Vendor profile updated successfully." });
+                                        setMessage({ type: "success", text: "Data vendor berhasil diperbarui." });
                                         setIsReviewUpdateOpen(false);
+                                        setReviewNotes("");
                                         fetchVendors();
                                     } else {
-                                        setMessage({ type: "error", text: res.error || "Failed to approve update." });
+                                        setMessage({ type: "error", text: res.error || "Gagal menyetujui pembaruan." });
                                     }
                                     setIsReviewing(false);
                                 }}
                                 disabled={isReviewing}
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold shadow-md shadow-emerald-500/20 h-10 px-5"
                             >
-                                {isReviewing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />} Approve
+                                {isReviewing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />} Setujui
                             </Button>
                         </div>
                     </div>
                 </div>
-            )}
+            );
+            })()}
         </div>
     );
 }
