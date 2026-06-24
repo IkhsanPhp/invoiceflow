@@ -35,6 +35,7 @@ const templates = [
         <p style="font-size: 16px;">Halo <strong>{{vendorName}}</strong>,</p>
         <p style="font-size: 16px; line-height: 1.5;">Invoice Anda nomor <strong>{{invoiceNumber}}</strong> telah lulus pengecekan awal oleh tim Procurement.</p>
         <p style="font-size: 16px; line-height: 1.5;">Status Saat Ini: <span style="background: #d1fae5; color: #047857; padding: 4px 12px; border-radius: 999px; font-size: 14px; font-weight: bold;">{{status}}</span></p>
+        {{comments}}
         <div style="background-color: #fef9c3; border-left: 4px solid #eab308; padding: 16px; margin: 24px 0;">
             <strong>Langkah Selanjutnya:</strong><br/>
             Harap segera mengirimkan dokumen fisik hardcopy (Invoice asli, Faktur Pajak, Surat Jalan, dan PO) ke alamat kantor kami. Jangan lupa untuk menekan tombol konfirmasi pengiriman melalui Vendor Portal setelah dokumen dikirim!
