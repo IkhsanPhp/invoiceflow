@@ -56,6 +56,7 @@ export default function SignInPage() {
         }
     };
 
+    return (
         <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4 md:p-8">
             <Card className="w-full max-w-[1000px] shadow-xl border-0 overflow-hidden flex flex-col md:flex-row bg-white dark:bg-slate-900 rounded-2xl">
                 
