@@ -185,7 +185,8 @@ export default function InvoiceDetailsPage() {
             return;
         }
         setIsRejectingShipping(true);
-        const result = await rejectShippingReceipt(invoiceId, shippingRejectionNotes);
+        const mockFileUrl = receiptFile ? "https://example.com/receipt-mock.pdf" : null;
+        const result = await rejectShippingReceipt(invoiceId, shippingRejectionNotes, receiptDate, mockFileUrl);
         setIsRejectingShipping(false);
         if (result.success) {
             setShowRejectShippingInput(false);
@@ -481,13 +482,31 @@ export default function InvoiceDetailsPage() {
                         <span>Konfirmasi Pengiriman Dokumen Fisik</span>
                     </div>
                     {invoice.shippingDetails?.rejectionNotes && (
-                        <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl flex gap-2 shadow-sm animate-in fade-in slide-in-from-top-2">
-                            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-                            <div>
-                                <h4 className="text-xs font-bold mb-1">Pengiriman Sebelumnya Ditolak</h4>
-                                <p className="text-[11px] font-medium leading-relaxed">{invoice.shippingDetails.rejectionNotes}</p>
-                                <p className="text-[10px] mt-1.5 opacity-80">Silakan perbaiki dokumen dan konfirmasi ulang pengiriman.</p>
+                        <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl flex flex-col gap-3 shadow-sm animate-in fade-in slide-in-from-top-2">
+                            <div className="flex gap-2">
+                                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-600" />
+                                <div>
+                                    <h4 className="text-xs font-bold mb-1 text-amber-700">Dokumen Belum Lengkap</h4>
+                                    <p className="text-[11px] font-medium leading-relaxed">{invoice.shippingDetails.rejectionNotes}</p>
+                                    <p className="text-[10px] mt-1.5 opacity-80 text-amber-700">Silakan lengkapi kekurangan dokumen berdasarkan catatan berikut.</p>
+                                </div>
                             </div>
+                            {(invoice.shippingDetails.receiptDate || invoice.shippingDetails.receiptFileUrl) && (
+                                <div className="mt-2 pt-3 border-t border-amber-200/50 flex flex-wrap gap-4 text-[11px] text-amber-700">
+                                    {invoice.shippingDetails.receiptDate && (
+                                        <div className="flex items-center gap-1.5">
+                                            <Calendar className="h-3.5 w-3.5 opacity-70" />
+                                            <span>Diterima pada: {new Date(invoice.shippingDetails.receiptDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                                        </div>
+                                    )}
+                                    {invoice.shippingDetails.receiptFileUrl && (
+                                        <a href={invoice.shippingDetails.receiptFileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-amber-900 transition-colors">
+                                            <FileText className="h-3.5 w-3.5 opacity-70" />
+                                            <span className="underline underline-offset-2">Lihat Scan Fisik yang Diterima</span>
+                                        </a>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
                     <p className="text-xs text-blue-700 dark:text-blue-300">Invoice telah diverifikasi Procurement. Harap kirim dokumen fisik ke kantor Chitra Pratama BPN.</p>
@@ -537,9 +556,9 @@ export default function InvoiceDetailsPage() {
 
                     {!showRejectShippingInput ? (
                         <div className="flex justify-end gap-2 mt-1">
-                            <Button onClick={() => setShowRejectShippingInput(true)} variant="outline" className="text-xs h-8 border-red-200 text-red-600 hover:bg-red-50">
-                                <X className="h-3 w-3 mr-1.5" />
-                                Diterima dengan kondisi tidak lengkap
+                            <Button onClick={() => setShowRejectShippingInput(true)} variant="outline" className="text-xs h-8 border-amber-200 text-amber-700 hover:bg-amber-100">
+                                <AlertTriangle className="h-3 w-3 mr-1.5" />
+                                Diterima namun belum lengkap
                             </Button>
                             <Button onClick={handleProcurementConfirmReceipt} disabled={isProcurementConfirming} className="bg-amber-600 hover:bg-amber-700 text-xs h-8">
                                 {isProcurementConfirming ? <Loader2 className="h-3 w-3 mr-2 animate-spin" /> : <Check className="h-3 w-3 mr-2" />}
@@ -547,19 +566,19 @@ export default function InvoiceDetailsPage() {
                             </Button>
                         </div>
                     ) : (
-                        <div className="bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900/50 p-3 rounded-xl animate-in fade-in slide-in-from-top-2">
-                            <Label className="text-xs font-bold text-red-700 dark:text-red-400 mb-2 block">Catatan Kekurangan Dokumen (Wajib)</Label>
+                        <div className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900/50 p-3 rounded-xl animate-in fade-in slide-in-from-top-2">
+                            <Label className="text-xs font-bold text-amber-700 dark:text-amber-400 mb-2 block">Catatan Kekurangan Dokumen (Wajib)</Label>
                             <Textarea 
                                 placeholder="Jelaskan dokumen apa saja yang kurang atau tidak sesuai..." 
-                                className="text-xs min-h-[80px] border-red-200 focus-visible:ring-red-500 mb-3"
+                                className="text-xs min-h-[80px] border-amber-200 focus-visible:ring-amber-500 mb-3"
                                 value={shippingRejectionNotes}
                                 onChange={(e) => setShippingRejectionNotes(e.target.value)}
                             />
                             <div className="flex justify-end gap-2">
                                 <Button onClick={() => { setShowRejectShippingInput(false); setShippingRejectionNotes(""); }} variant="ghost" className="text-xs h-8 text-slate-500">Batal</Button>
-                                <Button onClick={handleRejectShippingReceipt} disabled={isRejectingShipping || !shippingRejectionNotes.trim()} className="bg-red-600 hover:bg-red-700 text-white text-xs h-8">
+                                <Button onClick={handleRejectShippingReceipt} disabled={isRejectingShipping || !shippingRejectionNotes.trim()} className="bg-amber-600 hover:bg-amber-700 text-white text-xs h-8">
                                     {isRejectingShipping ? <Loader2 className="h-3 w-3 mr-2 animate-spin" /> : <AlertTriangle className="h-3 w-3 mr-2" />}
-                                    Tolak & Minta Revisi Vendor
+                                    Minta Kelengkapan Vendor
                                 </Button>
                             </div>
                         </div>
@@ -1067,6 +1086,12 @@ export default function InvoiceDetailsPage() {
                                         desc = "Resepsionis atau admin menerima dokumen fisik dan meneruskannya ke Finance.";
                                         iconNode = <Check className="h-3.5 w-3.5 font-bold" />;
                                         break;
+                                    case "SHIPPING_INCOMPLETE":
+                                    case "SHIPPING_REJECTED":
+                                        title = "Dokumen Fisik Belum Lengkap";
+                                        desc = "Pemeriksa menyatakan bahwa dokumen fisik yang diterima masih belum lengkap dan meminta vendor untuk melengkapi berdasarkan catatan.";
+                                        iconNode = <AlertCircle className="h-3.5 w-3.5" />;
+                                        break;
                                     default:
                                         title = log.action;
                                         desc = "Aktivitas tercatat oleh sistem.";
@@ -1114,11 +1139,23 @@ export default function InvoiceDetailsPage() {
                                                 </div>
                                             )}
                                             
-                                            {/* Render single comment note (e.g. from finance) */}
-                                            {((log.metadata as any)?.comments && typeof (log.metadata as any).comments === "string") && (
+                                            {/* Render single comment note (e.g. from finance or shipping incomplete) */}
+                                            {(((log.metadata as any)?.comments && typeof (log.metadata as any).comments === "string") || ((log.metadata as any)?.notes && typeof (log.metadata as any).notes === "string")) && (
                                                 <div className="mt-2 text-[11px] bg-amber-50/50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50 p-2.5 rounded-lg">
                                                     <strong className="block mb-1 font-bold">Catatan Pemeriksa:</strong>
-                                                    <p>{(log.metadata as any).comments}</p>
+                                                    <p>{(log.metadata as any).comments || (log.metadata as any).notes}</p>
+                                                    {(log.metadata as any).receiptDate && (
+                                                        <div className="mt-2 text-[10px] flex items-center gap-1.5 opacity-80">
+                                                            <Calendar className="h-3 w-3" />
+                                                            Diterima pada: {new Date((log.metadata as any).receiptDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                        </div>
+                                                    )}
+                                                    {(log.metadata as any).receiptFileUrl && (
+                                                        <a href={(log.metadata as any).receiptFileUrl} target="_blank" rel="noopener noreferrer" className="mt-1 flex items-center gap-1.5 text-[10px] hover:text-amber-900 transition-colors opacity-80 underline">
+                                                            <FileText className="h-3 w-3" />
+                                                            Lihat Lampiran Preview Dokumen
+                                                        </a>
+                                                    )}
                                                 </div>
                                             )}
 

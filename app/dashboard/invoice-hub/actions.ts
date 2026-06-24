@@ -1163,7 +1163,7 @@ export async function submitShippingConfirmation(invoiceId: string, shippingData
         return { success: false, error: error.message };
     }
 }
-export async function rejectShippingReceipt(invoiceId: string, notes: string) {
+export async function rejectShippingReceipt(invoiceId: string, notes: string, receiptDate?: string, receiptFileUrl?: string | null) {
     try {
         const session = await auth.api.getSession({ headers: await headers() });
         const userId = session?.user?.id;
@@ -1176,7 +1176,9 @@ export async function rejectShippingReceipt(invoiceId: string, notes: string) {
         const updatedShippingDetails = {
             ...currentShippingDetails,
             rejectionNotes: notes,
-            rejectedAt: new Date().toISOString()
+            rejectedAt: new Date().toISOString(),
+            receiptDate: receiptDate || null,
+            receiptFileUrl: receiptFileUrl || null
         };
 
         await db.update(invoices)
@@ -1191,10 +1193,10 @@ export async function rejectShippingReceipt(invoiceId: string, notes: string) {
             await db.insert(auditLogs).values({
                 id: crypto.randomUUID(),
                 userId: userId,
-                action: "SHIPPING_REJECTED",
+                action: "SHIPPING_INCOMPLETE",
                 targetType: "Invoice",
                 targetId: invoiceId,
-                metadata: { notes }
+                metadata: { notes, receiptDate, receiptFileUrl }
             });
         }
         
