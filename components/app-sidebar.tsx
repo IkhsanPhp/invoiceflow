@@ -112,21 +112,13 @@ export function AppSidebar({
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <Link href="/" className="flex items-center gap-2">
-                <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
-                  <circle cx="16" cy="6" r="2" fill="#0ea5e9"/>
-                  <circle cx="23" cy="9" r="2" fill="#38bdf8"/>
-                  <circle cx="26" cy="16" r="2" fill="#10b981"/>
-                  <circle cx="23" cy="23" r="2" fill="#34d399"/>
-                  <circle cx="16" cy="26" r="2" fill="#8b5cf6"/>
-                  <circle cx="9" cy="23" r="2" fill="#a78bfa"/>
-                  <circle cx="6" cy="16" r="2" fill="#f43f5e"/>
-                  <circle cx="9" cy="9" r="2" fill="#fb7185"/>
-                  <circle cx="16" cy="16" r="4" stroke="#0ea5e9" strokeWidth="2"/>
-                </svg>
-                <div className="flex flex-col gap-0 leading-none overflow-hidden">
-                  <span className="text-base font-bold text-slate-900 dark:text-white truncate font-parkinsans">One Chitra</span>
-                  <span className="text-[10px] text-slate-500 font-medium truncate max-w-[170px]">All In One Apps Chitra Pratama</span>
+              <Link href="/" className="flex items-center gap-2 mt-1">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border bg-white shadow-sm overflow-hidden p-1">
+                  <img src="/logo.png" alt="Logo" className="h-full w-full object-contain" />
+                </div>
+                <div className="flex flex-col gap-0.5 leading-none overflow-hidden ml-1">
+                  <span className="text-[15px] font-bold text-slate-900 dark:text-white truncate">PROC-SHARE</span>
+                  <span className="text-[11px] text-slate-500 font-medium truncate max-w-[170px]">All In One Apps Chitra Paratama</span>
                 </div>
               </Link>
             </SidebarMenuButton>
