@@ -58,10 +58,10 @@ export default function SignInPage() {
 
     return (
         <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4 md:p-8">
-            <Card className="w-full max-w-[1000px] shadow-xl border-0 overflow-hidden flex flex-col md:flex-row bg-white dark:bg-slate-900 rounded-2xl">
+            <Card className="w-full max-w-[1000px] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border-0 flex flex-col md:flex-row bg-white dark:bg-slate-900 rounded-[2rem] p-3 md:p-4 gap-4 md:gap-0">
                 
                 {/* Left side - Branding Area */}
-                <div className="hidden md:flex md:w-[45%] bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-400 p-10 flex-col justify-between text-white relative rounded-t-2xl md:rounded-l-2xl md:rounded-tr-none">
+                <div className="hidden md:flex md:w-[45%] bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-400 p-10 flex-col justify-between text-white relative rounded-[1.5rem] overflow-hidden">
                     <div className="relative z-10">
                         <Image 
                             src="/logo-chitra.png" 
@@ -83,7 +83,7 @@ export default function SignInPage() {
                 </div>
 
                 {/* Right side - Form Area */}
-                <div className="w-full md:w-[55%] flex flex-col justify-center p-8 md:p-14">
+                <div className="w-full md:w-[55%] flex flex-col justify-center p-6 md:p-10 lg:px-14">
                     <div className="mb-8">
                         <div className="md:hidden mb-6 flex justify-center">
                             <Image 
