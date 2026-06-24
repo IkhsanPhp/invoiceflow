@@ -358,9 +358,9 @@ export default function RegisterVendorPage() {
     if (isSuccess) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12 text-foreground font-sans">
-                <Card className="w-full max-w-lg border-emerald-500/20 bg-card shadow-2xl">
+                <Card className="w-full max-w-lg border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
                     <CardHeader className="text-center pt-8">
-                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 mb-4 animate-bounce">
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 mb-4 animate-bounce">
                             <CheckCircle2 className="h-10 w-10" />
                         </div>
                         <CardTitle className="text-2xl font-bold tracking-tight">Registrasi Berhasil!</CardTitle>
@@ -395,7 +395,7 @@ export default function RegisterVendorPage() {
                         </p>
                     </CardContent>
                     <CardFooter className="flex justify-center pb-8">
-                        <Button asChild className="bg-emerald-600 hover:bg-emerald-500 text-white w-full max-w-xs transition-colors">
+                        <Button asChild className="bg-blue-600 hover:bg-blue-700 text-white w-full max-w-xs transition-colors">
                             <Link href="/sign-in">Halaman Login</Link>
                         </Button>
                     </CardFooter>
@@ -405,21 +405,15 @@ export default function RegisterVendorPage() {
     }
 
     return (
-        <div className="min-h-screen w-full flex items-center justify-center relative py-6 px-4 sm:px-6 lg:px-8">
-            {/* Full page background with overlay */}
-            <div className="fixed inset-0 z-0">
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/80 to-zinc-950/95 z-10"></div>
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center mix-blend-overlay opacity-40 z-0"></div>
-            </div>
-
+        <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-slate-950 py-6 px-4 sm:px-6 lg:px-8">
             {/* Form Area */}
-            <div className="relative z-20 w-full max-w-3xl flex flex-col items-center">
+            <div className="w-full max-w-3xl flex flex-col items-center">
                 
-                <Card className="w-full shadow-2xl border-white/10 bg-white/95 dark:bg-zinc-950/90 backdrop-blur-md">
+                <Card className="w-full shadow-sm border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
                     <form onSubmit={handleSubmit}>
-                        <CardHeader className="text-center pb-6 border-b border-zinc-200 dark:border-zinc-800/50">
-                            <CardTitle className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">Vendor Registration</CardTitle>
-                            <CardDescription className="text-base text-zinc-600 dark:text-zinc-400 mt-2">
+                        <CardHeader className="text-center pb-6 border-b border-slate-200 dark:border-slate-800">
+                            <CardTitle className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Vendor Registration</CardTitle>
+                            <CardDescription className="text-base text-slate-500 dark:text-slate-400 mt-2">
                                 Daftarkan akun vendor rekanan Anda ke InvoiceFlow
                             </CardDescription>
                         
@@ -434,7 +428,7 @@ export default function RegisterVendorPage() {
                             <div className="mt-3 text-xs font-semibold text-foreground flex items-center justify-center gap-1.5 bg-muted/40 py-1.5 px-3 rounded-md border border-border/40">
                                 {(() => {
                                     const Icon = STEPS[currentStep - 1].icon;
-                                    return <Icon className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />;
+                                    return <Icon className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />;
                                 })()}
                                 <span>Langkah {currentStep}: {STEPS[currentStep - 1].title} &bull; {STEPS[currentStep - 1].desc}</span>
                             </div>
@@ -1021,7 +1015,7 @@ export default function RegisterVendorPage() {
                             <Button 
                                 type="button" 
                                 onClick={handleNext}
-                                className="bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 transition-colors"
+                                className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1.5 transition-colors"
                             >
                                 Lanjut
                                 <ArrowRight className="h-4 w-4" />
@@ -1030,7 +1024,7 @@ export default function RegisterVendorPage() {
                             <Button 
                                 type="submit"
                                 disabled={isLoading}
-                                className="bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 transition-colors"
+                                className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1.5 transition-colors"
                             >
                                 {isLoading ? (
                                     <>

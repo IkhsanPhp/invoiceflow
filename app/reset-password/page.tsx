@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { resetPassword } from "@/lib/auth-client";
 import { Loader2, Eye, EyeOff, Building2, CheckCircle2 } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 function ResetPasswordForm() {
     const [newPassword, setNewPassword] = useState("");
@@ -60,17 +61,19 @@ function ResetPasswordForm() {
 
     if (isSuccess) {
         return (
-            <div className="mt-8 space-y-6 text-center">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30">
-                    <CheckCircle2 className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+            <div className="space-y-6 text-center py-4">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/30">
+                    <CheckCircle2 className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                 </div>
-                <h3 className="text-xl font-medium text-zinc-900 dark:text-white">Password reset complete!</h3>
-                <p className="text-zinc-600 dark:text-zinc-400">
-                    Your password has been successfully reset. Redirecting you to the sign in page...
-                </p>
+                <div>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Password reset complete!</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+                        Your password has been successfully reset. Redirecting you to the sign in page...
+                    </p>
+                </div>
                 <Button 
                     onClick={() => router.push("/sign-in")} 
-                    className="w-full h-11 text-base font-medium bg-emerald-600 hover:bg-emerald-700 text-white"
+                    className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-medium"
                 >
                     Sign in now
                 </Button>
@@ -79,15 +82,15 @@ function ResetPasswordForm() {
     }
 
     return (
-        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-                <Alert variant="destructive" className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-900 text-red-600 dark:text-red-400">
+                <Alert variant="destructive" className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-900 text-red-700 dark:text-red-400">
                     <AlertDescription>{error}</AlertDescription>
                 </Alert>
             )}
             <div className="space-y-4">
                 <div className="space-y-2">
-                    <Label htmlFor="newPassword">New Password</Label>
+                    <Label htmlFor="newPassword" className="text-slate-700 dark:text-slate-300">New Password</Label>
                     <div className="relative">
                         <Input
                             id="newPassword"
@@ -97,24 +100,24 @@ function ResetPasswordForm() {
                             onChange={(e) => setNewPassword(e.target.value)}
                             required
                             disabled={isLoading}
-                            className="h-11 pr-10"
+                            className="h-10 pr-10 border-slate-300 dark:border-slate-700 focus-visible:ring-blue-600"
                         />
                         <button
                             type="button"
                             onClick={() => setShowNewPassword(!showNewPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300 focus:outline-none"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 focus:outline-none"
                         >
                             {showNewPassword ? (
-                                <EyeOff className="h-5 w-5" aria-hidden="true" />
+                                <EyeOff className="h-4 w-4" aria-hidden="true" />
                             ) : (
-                                <Eye className="h-5 w-5" aria-hidden="true" />
+                                <Eye className="h-4 w-4" aria-hidden="true" />
                             )}
                         </button>
                     </div>
                 </div>
                 
                 <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                    <Label htmlFor="confirmPassword" className="text-slate-700 dark:text-slate-300">Confirm New Password</Label>
                     <div className="relative">
                         <Input
                             id="confirmPassword"
@@ -124,27 +127,27 @@ function ResetPasswordForm() {
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             required
                             disabled={isLoading}
-                            className="h-11 pr-10"
+                            className="h-10 pr-10 border-slate-300 dark:border-slate-700 focus-visible:ring-blue-600"
                         />
                         <button
                             type="button"
                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300 focus:outline-none"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 focus:outline-none"
                         >
                             {showConfirmPassword ? (
-                                <EyeOff className="h-5 w-5" aria-hidden="true" />
+                                <EyeOff className="h-4 w-4" aria-hidden="true" />
                             ) : (
-                                <Eye className="h-5 w-5" aria-hidden="true" />
+                                <Eye className="h-4 w-4" aria-hidden="true" />
                             )}
                         </button>
                     </div>
                 </div>
             </div>
 
-            <Button type="submit" className="w-full h-11 text-base font-medium bg-emerald-600 hover:bg-emerald-700 text-white" disabled={isLoading || !token}>
+            <Button type="submit" className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-medium" disabled={isLoading || !token}>
                 {isLoading ? (
                     <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Resetting password...
                     </>
                 ) : (
@@ -153,7 +156,7 @@ function ResetPasswordForm() {
             </Button>
             
             {!token && (
-                <div className="text-center text-sm text-red-500 mt-2">
+                <div className="text-center text-sm text-red-600 mt-2">
                     Missing reset token. Please use the link from your email.
                 </div>
             )}
@@ -163,50 +166,29 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
     return (
-        <div className="min-h-screen w-full flex">
-            {/* Left side - Branding/Hero */}
-            <div className="hidden lg:flex flex-1 flex-col justify-between bg-zinc-900 p-10 text-white relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/20 to-zinc-900 z-0"></div>
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-luminosity z-0"></div>
-                
-                <div className="relative z-10 flex items-center gap-2 font-bold text-2xl">
-                    <div className="bg-emerald-500 p-2 rounded-lg">
-                        <Building2 className="h-6 w-6 text-white" />
-                    </div>
-                    InvoiceFlow
-                </div>
-                
-                <div className="relative z-10 max-w-lg">
-                    <h1 className="text-4xl font-bold tracking-tight mb-4">Set New Password</h1>
-                    <p className="text-lg text-zinc-400">Choose a strong password to keep your account secure.</p>
-                </div>
-                
-                <div className="relative z-10 text-sm text-zinc-500">
-                    &copy; 2026 Chitra Paratama. All rights reserved.
-                </div>
-            </div>
-
-            {/* Right side - Reset Password Form */}
-            <div className="flex-1 flex items-center justify-center bg-white dark:bg-zinc-950 px-4 py-12 sm:px-6 lg:px-8">
-                <div className="w-full max-w-md space-y-8">
-                    <div className="text-center">
-                        <div className="lg:hidden flex items-center justify-center gap-2 font-bold text-3xl mb-8">
-                            <div className="bg-emerald-500 p-2 rounded-lg">
-                                <Building2 className="h-6 w-6 text-white" />
-                            </div>
-                            InvoiceFlow
+        <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4">
+            <Card className="w-full max-w-[400px] shadow-sm border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                <CardHeader className="text-center space-y-4 pb-6">
+                    <div className="flex items-center justify-center gap-2 font-bold text-2xl">
+                        <div className="bg-blue-600 p-2 rounded-lg">
+                            <Building2 className="h-5 w-5 text-white" />
                         </div>
-                        <h2 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">Create new password</h2>
-                        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-                            Your new password must be different from previous used passwords.
-                        </p>
+                        <span className="text-slate-900 dark:text-white">InvoiceFlow</span>
                     </div>
+                    <div>
+                        <CardTitle className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Create new password</CardTitle>
+                        <CardDescription className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+                            Your new password must be different from previous used passwords.
+                        </CardDescription>
+                    </div>
+                </CardHeader>
 
-                    <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin text-zinc-400" /></div>}>
+                <CardContent>
+                    <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin text-slate-400" /></div>}>
                         <ResetPasswordForm />
                     </Suspense>
-                </div>
-            </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }

@@ -56,54 +56,33 @@ export default function SignInPage() {
     };
 
     return (
-        <div className="min-h-screen w-full flex">
-            {/* Left side - Branding/Hero */}
-            <div className="hidden lg:flex flex-1 flex-col justify-between bg-zinc-900 p-10 text-white relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/20 to-zinc-900 z-0"></div>
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-luminosity z-0"></div>
-                
-                <div className="relative z-10 flex items-center gap-2 font-bold text-2xl">
-                    <div className="bg-emerald-500 p-2 rounded-lg">
-                        <Building2 className="h-6 w-6 text-white" />
-                    </div>
-                    InvoiceFlow
-                </div>
-                
-                <div className="relative z-10 max-w-lg">
-                    <h1 className="text-4xl font-bold tracking-tight mb-4">Streamline Your Vendor Operations</h1>
-                    <p className="text-lg text-zinc-400">The most efficient way to manage invoices, verifications, and payments. Secure, fast, and fully automated.</p>
-                </div>
-                
-                <div className="relative z-10 text-sm text-zinc-500">
-                    &copy; 2026 Chitra Paratama. All rights reserved.
-                </div>
-            </div>
-
-            {/* Right side - Login Form */}
-            <div className="flex-1 flex items-center justify-center bg-white dark:bg-zinc-950 px-4 py-12 sm:px-6 lg:px-8">
-                <div className="w-full max-w-md space-y-8">
-                    <div className="text-center">
-                        <div className="lg:hidden flex items-center justify-center gap-2 font-bold text-3xl mb-8">
-                            <div className="bg-emerald-500 p-2 rounded-lg">
-                                <Building2 className="h-6 w-6 text-white" />
-                            </div>
-                            InvoiceFlow
+        <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4">
+            <Card className="w-full max-w-[400px] shadow-sm border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                <CardHeader className="text-center space-y-4 pb-6">
+                    <div className="flex items-center justify-center gap-2 font-bold text-2xl">
+                        <div className="bg-blue-600 p-2 rounded-lg">
+                            <Building2 className="h-5 w-5 text-white" />
                         </div>
-                        <h2 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">Welcome back</h2>
-                        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-                            Please enter your credentials to access your account
-                        </p>
+                        <span className="text-slate-900 dark:text-white">InvoiceFlow</span>
                     </div>
+                    <div>
+                        <CardTitle className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Welcome back</CardTitle>
+                        <CardDescription className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+                            Please enter your credentials to access your account
+                        </CardDescription>
+                    </div>
+                </CardHeader>
 
-                    <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+                <CardContent>
+                    <form onSubmit={handleSubmit} className="space-y-5">
                         {error && (
-                            <Alert variant="destructive" className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-900 text-red-600 dark:text-red-400">
+                            <Alert variant="destructive" className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-900 text-red-700 dark:text-red-400">
                                 <AlertDescription>{error}</AlertDescription>
                             </Alert>
                         )}
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="email">Email address</Label>
+                                <Label htmlFor="email" className="text-slate-700 dark:text-slate-300">Email address</Label>
                                 <Input
                                     id="email"
                                     type="email"
@@ -112,13 +91,13 @@ export default function SignInPage() {
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
                                     disabled={isLoading}
-                                    className="h-11"
+                                    className="h-10 border-slate-300 dark:border-slate-700 focus-visible:ring-blue-600"
                                 />
                             </div>
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <Label htmlFor="password">Password</Label>
-                                    <Link href="/forgot-password" className="text-sm font-medium text-emerald-600 hover:text-emerald-500">
+                                    <Label htmlFor="password" className="text-slate-700 dark:text-slate-300">Password</Label>
+                                    <Link href="/forgot-password" className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
                                         Forgot password?
                                     </Link>
                                 </div>
@@ -131,43 +110,44 @@ export default function SignInPage() {
                                         onChange={(e) => setPassword(e.target.value)}
                                         required
                                         disabled={isLoading}
-                                        className="h-11 pr-10"
+                                        className="h-10 pr-10 border-slate-300 dark:border-slate-700 focus-visible:ring-blue-600"
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300 focus:outline-none"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 focus:outline-none"
                                     >
                                         {showPassword ? (
-                                            <EyeOff className="h-5 w-5" aria-hidden="true" />
+                                            <EyeOff className="h-4 w-4" aria-hidden="true" />
                                         ) : (
-                                            <Eye className="h-5 w-5" aria-hidden="true" />
+                                            <Eye className="h-4 w-4" aria-hidden="true" />
                                         )}
                                     </button>
                                 </div>
                             </div>
                         </div>
 
-                        <Button type="submit" className="w-full h-11 text-base font-medium bg-emerald-600 hover:bg-emerald-700 text-white" disabled={isLoading}>
+                        <Button type="submit" className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-medium" disabled={isLoading}>
                             {isLoading ? (
                                 <>
-                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Signing in...
                                 </>
                             ) : (
                                 "Sign in"
                             )}
                         </Button>
-                        
-                        <div className="mt-6 text-center text-sm text-zinc-600 dark:text-zinc-400">
-                            Are you a new vendor partner?{" "}
-                            <Link href="/register-vendor" className="font-semibold text-emerald-600 hover:text-emerald-500 dark:text-emerald-400">
-                                Self-Register here
-                            </Link>
-                        </div>
                     </form>
-                </div>
-            </div>
+                </CardContent>
+                <CardFooter className="flex justify-center border-t border-slate-100 dark:border-slate-800 pt-6 pb-6">
+                    <div className="text-sm text-slate-500 dark:text-slate-400">
+                        New vendor partner?{" "}
+                        <Link href="/register-vendor" className="font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                            Register here
+                        </Link>
+                    </div>
+                </CardFooter>
+            </Card>
         </div>
     );
 }

@@ -42,72 +42,53 @@ export default function ForgotPasswordPage() {
     };
 
     return (
-        <div className="min-h-screen w-full flex">
-            {/* Left side - Branding/Hero */}
-            <div className="hidden lg:flex flex-1 flex-col justify-between bg-zinc-900 p-10 text-white relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/20 to-zinc-900 z-0"></div>
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-luminosity z-0"></div>
-                
-                <div className="relative z-10 flex items-center gap-2 font-bold text-2xl">
-                    <div className="bg-emerald-500 p-2 rounded-lg">
-                        <Building2 className="h-6 w-6 text-white" />
-                    </div>
-                    InvoiceFlow
-                </div>
-                
-                <div className="relative z-10 max-w-lg">
-                    <h1 className="text-4xl font-bold tracking-tight mb-4">Reset Your Password</h1>
-                    <p className="text-lg text-zinc-400">Secure access to your vendor portal and invoices.</p>
-                </div>
-                
-                <div className="relative z-10 text-sm text-zinc-500">
-                    &copy; 2026 Chitra Paratama. All rights reserved.
-                </div>
-            </div>
-
-            {/* Right side - Forgot Password Form */}
-            <div className="flex-1 flex items-center justify-center bg-white dark:bg-zinc-950 px-4 py-12 sm:px-6 lg:px-8">
-                <div className="w-full max-w-md space-y-8">
-                    <div className="text-center">
-                        <div className="lg:hidden flex items-center justify-center gap-2 font-bold text-3xl mb-8">
-                            <div className="bg-emerald-500 p-2 rounded-lg">
-                                <Building2 className="h-6 w-6 text-white" />
-                            </div>
-                            InvoiceFlow
+        <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4">
+            <Card className="w-full max-w-[400px] shadow-sm border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                <CardHeader className="text-center space-y-4 pb-6">
+                    <div className="flex items-center justify-center gap-2 font-bold text-2xl">
+                        <div className="bg-blue-600 p-2 rounded-lg">
+                            <Building2 className="h-5 w-5 text-white" />
                         </div>
-                        <h2 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">Forgot password?</h2>
-                        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-                            Enter your email address and we'll send you a link to reset your password.
-                        </p>
+                        <span className="text-slate-900 dark:text-white">InvoiceFlow</span>
                     </div>
+                    <div>
+                        <CardTitle className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Forgot password?</CardTitle>
+                        <CardDescription className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+                            Enter your email address and we'll send you a link to reset your password.
+                        </CardDescription>
+                    </div>
+                </CardHeader>
 
+                <CardContent>
                     {isSuccess ? (
-                        <div className="mt-8 space-y-6 text-center">
-                            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30">
-                                <CheckCircle2 className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+                        <div className="space-y-6 text-center py-4">
+                            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/30">
+                                <CheckCircle2 className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                             </div>
-                            <h3 className="text-xl font-medium text-zinc-900 dark:text-white">Check your email</h3>
-                            <p className="text-zinc-600 dark:text-zinc-400">
-                                We sent a password reset link to <br/><span className="font-semibold text-zinc-900 dark:text-white">{email}</span>
-                            </p>
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Check your email</h3>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+                                    We sent a password reset link to <br/><span className="font-semibold text-slate-900 dark:text-white">{email}</span>
+                                </p>
+                            </div>
                             <Button 
                                 onClick={() => router.push("/sign-in")} 
                                 variant="outline" 
-                                className="w-full h-11 text-base font-medium"
+                                className="w-full h-10 border-slate-300 dark:border-slate-700 font-medium"
                             >
                                 Back to Sign in
                             </Button>
                         </div>
                     ) : (
-                        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+                        <form onSubmit={handleSubmit} className="space-y-5">
                             {error && (
-                                <Alert variant="destructive" className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-900 text-red-600 dark:text-red-400">
+                                <Alert variant="destructive" className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-900 text-red-700 dark:text-red-400">
                                     <AlertDescription>{error}</AlertDescription>
                                 </Alert>
                             )}
                             <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="email">Email address</Label>
+                                    <Label htmlFor="email" className="text-slate-700 dark:text-slate-300">Email address</Label>
                                     <Input
                                         id="email"
                                         type="email"
@@ -116,32 +97,36 @@ export default function ForgotPasswordPage() {
                                         onChange={(e) => setEmail(e.target.value)}
                                         required
                                         disabled={isLoading}
-                                        className="h-11"
+                                        className="h-10 border-slate-300 dark:border-slate-700 focus-visible:ring-blue-600"
                                     />
                                 </div>
                             </div>
 
-                            <Button type="submit" className="w-full h-11 text-base font-medium bg-emerald-600 hover:bg-emerald-700 text-white" disabled={isLoading}>
+                            <Button type="submit" className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-medium" disabled={isLoading}>
                                 {isLoading ? (
                                     <>
-                                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                         Sending link...
                                     </>
                                 ) : (
                                     "Send reset link"
                                 )}
                             </Button>
-                            
-                            <div className="mt-6 text-center text-sm text-zinc-600 dark:text-zinc-400">
-                                Remember your password?{" "}
-                                <Link href="/sign-in" className="font-semibold text-emerald-600 hover:text-emerald-500 dark:text-emerald-400">
-                                    Sign in
-                                </Link>
-                            </div>
                         </form>
                     )}
-                </div>
-            </div>
+                </CardContent>
+                
+                {!isSuccess && (
+                    <CardFooter className="flex justify-center border-t border-slate-100 dark:border-slate-800 pt-6 pb-6">
+                        <div className="text-sm text-slate-500 dark:text-slate-400">
+                            Remember your password?{" "}
+                            <Link href="/sign-in" className="font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                                Sign in
+                            </Link>
+                        </div>
+                    </CardFooter>
+                )}
+            </Card>
         </div>
     );
 }
