@@ -140,7 +140,8 @@ export default function VendorsMasterPage() {
     const [isReviewUpdateOpen, setIsReviewUpdateOpen] = useState(false);
     const [selectedUpdate, setSelectedUpdate] = useState<any | null>(null);
     const [reviewNotes, setReviewNotes] = useState("");
-    const [isReviewing, setIsReviewing] = useState(false);
+    const [isApprovingUpdate, setIsApprovingUpdate] = useState(false);
+    const [isRejectingUpdate, setIsRejectingUpdate] = useState(false);
 
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -1808,7 +1809,7 @@ export default function VendorsMasterPage() {
                             <Button 
                                 variant="outline" 
                                 onClick={() => setIsReviewUpdateOpen(false)}
-                                disabled={isReviewing}
+                                disabled={isRejectingUpdate || isApprovingUpdate}
                                 className="rounded-xl font-semibold h-10 px-5"
                             >
                                 Batal
@@ -1819,7 +1820,7 @@ export default function VendorsMasterPage() {
                                         setMessage({ type: "error", text: "Harap isi catatan revisi terlebih dahulu." });
                                         return;
                                     }
-                                    setIsReviewing(true);
+                                    setIsRejectingUpdate(true);
                                     const res = await rejectVendorUpdate(selectedUpdate.id, reviewNotes);
                                     if (res.success) {
                                         setMessage({ type: "success", text: "Pengajuan berhasil direvisi." });
@@ -1829,16 +1830,16 @@ export default function VendorsMasterPage() {
                                     } else {
                                         setMessage({ type: "error", text: res.error || "Gagal melakukan revisi." });
                                     }
-                                    setIsReviewing(false);
+                                    setIsRejectingUpdate(false);
                                 }}
-                                disabled={isReviewing}
+                                disabled={isRejectingUpdate || isApprovingUpdate}
                                 className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-semibold h-10 px-5"
                             >
-                                {isReviewing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Edit2 className="w-4 h-4 mr-2" />} Revisi
+                                {isRejectingUpdate ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Edit2 className="w-4 h-4 mr-2" />} Revisi
                             </Button>
                             <Button 
                                 onClick={async () => {
-                                    setIsReviewing(true);
+                                    setIsApprovingUpdate(true);
                                     const res = await approveVendorUpdate(selectedUpdate.id);
                                     if (res.success) {
                                         setMessage({ type: "success", text: "Data vendor berhasil diperbarui." });
@@ -1848,12 +1849,12 @@ export default function VendorsMasterPage() {
                                     } else {
                                         setMessage({ type: "error", text: res.error || "Gagal menyetujui pembaruan." });
                                     }
-                                    setIsReviewing(false);
+                                    setIsApprovingUpdate(false);
                                 }}
-                                disabled={isReviewing}
+                                disabled={isApprovingUpdate || isRejectingUpdate}
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold shadow-md shadow-emerald-500/20 h-10 px-5"
                             >
-                                {isReviewing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />} Setujui
+                                {isApprovingUpdate ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />} Setujui
                             </Button>
                         </div>
                     </div>

@@ -568,9 +568,10 @@ export async function approveVendorUpdate(updateId: string) {
         // 5. Add audit log entry
         await db.insert(auditLogs).values({
             action: "VENDOR_UPDATE_APPROVED",
-            performedBy: session.user.id,
+            userId: session.user.id,
+            targetType: "Vendor",
             targetId: updateReq.vendorId,
-            details: { updateId, approvedBy: session.user.name || session.user.email },
+            metadata: { updateId, approvedBy: session.user.name || session.user.email },
         });
 
         return { success: true };
@@ -622,9 +623,10 @@ export async function rejectVendorUpdate(updateId: string, notes: string) {
         // 3. Add audit log entry
         await db.insert(auditLogs).values({
             action: "VENDOR_UPDATE_REVISION",
-            performedBy: session.user.id,
+            userId: session.user.id,
+            targetType: "Vendor",
             targetId: updateReq.vendorId,
-            details: { updateId, revisionNotes: notes, reviewedBy: session.user.name || session.user.email },
+            metadata: { updateId, revisionNotes: notes, reviewedBy: session.user.name || session.user.email },
         });
 
         return { success: true };
