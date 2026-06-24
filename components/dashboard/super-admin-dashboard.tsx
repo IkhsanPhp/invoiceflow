@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, AlertTriangle, Briefcase, FileText, CheckCircle2, Clock, Users, ArrowRight } from "lucide-react";
+import { Area, AreaChart, CartesianGrid, XAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -15,12 +16,17 @@ export function SuperAdminDashboard({ stats }: { stats: any }) {
         bottleneckProcurement, 
         bottleneckFinance, 
         pendingVendors, 
-        recentActivity 
+        recentActivity,
+        chartData,
+        statusDistribution,
+        topVendors
     } = stats;
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(amount);
     };
+
+    const COLORS = ['#0ea5e9', '#f59e0b', '#10b981', '#64748b', '#ef4444', '#8b5cf6'];
 
     return (
         <div className="flex flex-col gap-6 p-4 md:p-6 w-full">
@@ -97,8 +103,83 @@ export function SuperAdminDashboard({ stats }: { stats: any }) {
                 </Card>
             </div>
 
+            <div className="grid gap-6 md:grid-cols-7">
+                {/* Area Chart */}
+                <Card className="md:col-span-4 bg-white dark:bg-slate-950 border-slate-200 shadow-sm">
+                    <CardHeader>
+                        <CardTitle>Invoice Processing Volume (30 Days)</CardTitle>
+                        <CardDescription>Daily breakdown of invoice submissions and their current status.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pl-0">
+                        <div className="h-[300px] w-full mt-4">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="colorVerified" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                        </linearGradient>
+                                        <linearGradient id="colorPending" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3}/>
+                                            <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                                        </linearGradient>
+                                        <linearGradient id="colorRejected" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
+                                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickMargin={8} minTickGap={32} />
+                                    <Tooltip 
+                                        contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                                        itemStyle={{ fontSize: '13px', fontWeight: 500 }}
+                                    />
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                    <Area type="monotone" dataKey="Verified" stroke="#10b981" fillOpacity={1} fill="url(#colorVerified)" strokeWidth={2} />
+                                    <Area type="monotone" dataKey="Pending" stroke="#f59e0b" fillOpacity={1} fill="url(#colorPending)" strokeWidth={2} />
+                                    <Area type="monotone" dataKey="Rejected" stroke="#ef4444" fillOpacity={1} fill="url(#colorRejected)" strokeWidth={2} />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Donut Chart */}
+                <Card className="md:col-span-3 bg-white dark:bg-slate-950 border-slate-200 shadow-sm">
+                    <CardHeader>
+                        <CardTitle>Status Distribution</CardTitle>
+                        <CardDescription>Current status of all invoices.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-[300px] w-full flex items-center justify-center">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={statusDistribution}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={60}
+                                        outerRadius={80}
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                    >
+                                        {statusDistribution?.map((entry: any, index: number) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip 
+                                        contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                                        itemStyle={{ fontSize: '13px', fontWeight: 500 }}
+                                    />
+                                    <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px' }}/>
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
             {/* Recent Activity classified by role */}
-            <Card className="w-full bg-white dark:bg-slate-950 border-slate-200 shadow-sm mt-4">
+            <Card className="w-full bg-white dark:bg-slate-950 border-slate-200 shadow-sm">
                 <CardHeader>
                     <CardTitle>Recent System Activity</CardTitle>
                     <CardDescription>Latest actions taken by users across different roles.</CardDescription>

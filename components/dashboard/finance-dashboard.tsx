@@ -2,6 +2,10 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2, AlertOctagon, TrendingUp, FileSignature } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export function FinanceDashboard({ stats }: { stats: any }) {
     if (!stats || !stats.success) return <div className="p-8 text-center">Failed to load dashboard data</div>;
@@ -10,7 +14,9 @@ export function FinanceDashboard({ stats }: { stats: any }) {
         readyForFinal, 
         readyForPayment, 
         cashflowThisWeek, 
-        paymentFailed 
+        paymentFailed,
+        cashflowChart,
+        recentInvoices
     } = stats;
 
     const formatCurrency = (amount: number) => {
@@ -53,7 +59,7 @@ export function FinanceDashboard({ stats }: { stats: any }) {
                         <TrendingUp className="h-4 w-4 text-indigo-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{formatCurrency(cashflowThisWeek)}</div>
+                        <div className="text-2xl font-bold text-indigo-600">{formatCurrency(cashflowThisWeek)}</div>
                         <p className="text-xs text-muted-foreground mt-1">Cashflow projection</p>
                     </CardContent>
                 </Card>
@@ -66,6 +72,72 @@ export function FinanceDashboard({ stats }: { stats: any }) {
                     <CardContent>
                         <div className="text-2xl font-bold text-red-600">{paymentFailed}</div>
                         <p className="text-xs text-muted-foreground mt-1">Failed or rejected transactions</p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+                <Card className="bg-white dark:bg-slate-950 border-slate-200 shadow-sm">
+                    <CardHeader>
+                        <CardTitle>Cashflow Projection (Next 7 Days)</CardTitle>
+                        <CardDescription>Estimated outgoing funds based on invoice due dates.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-[300px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={cashflowChart} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                    <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                                    <YAxis 
+                                        stroke="#888888" 
+                                        fontSize={12} 
+                                        tickLine={false} 
+                                        axisLine={false}
+                                        tickFormatter={(val) => `Rp ${(val/1000000).toFixed(0)}M`}
+                                    />
+                                    <Tooltip 
+                                        cursor={{fill: 'rgba(0,0,0,0.05)'}}
+                                        contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                                        formatter={(val: number) => formatCurrency(val)}
+                                    />
+                                    <Bar dataKey="Projected CashOut" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="bg-white dark:bg-slate-950 border-slate-200 shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle>Upcoming Verifications & Payments</CardTitle>
+                            <CardDescription>Invoices waiting for finance action.</CardDescription>
+                        </div>
+                        <Button variant="outline" size="sm" asChild>
+                            <Link href="/dashboard/invoice-hub">View All</Link>
+                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {recentInvoices && recentInvoices.length > 0 ? (
+                                recentInvoices.map((inv: any) => (
+                                    <div key={inv.id} className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 last:border-0 last:pb-0">
+                                        <div>
+                                            <p className="font-medium">{inv.invoiceNumber}</p>
+                                            <p className="text-xs text-muted-foreground">{inv.vendorName}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="font-medium text-sm">{formatCurrency(inv.totalAmount)}</div>
+                                            <div className="text-xs text-muted-foreground mt-1">
+                                                Due: {inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('id-ID') : '-'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-sm text-muted-foreground">No invoices needing attention.</p>
+                            )}
+                        </div>
                     </CardContent>
                 </Card>
             </div>

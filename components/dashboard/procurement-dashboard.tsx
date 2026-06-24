@@ -1,7 +1,11 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Briefcase, FileCheck, RefreshCw, Send } from "lucide-react";
+import { Briefcase, FileCheck, RefreshCw, Send, ArrowRight } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export function ProcurementDashboard({ stats }: { stats: any }) {
     if (!stats || !stats.success) return <div className="p-8 text-center">Failed to load dashboard data</div>;
@@ -10,8 +14,20 @@ export function ProcurementDashboard({ stats }: { stats: any }) {
         pendingVendors, 
         pendingInitial, 
         waitingRevision, 
-        documentsInTransit 
+        documentsInTransit,
+        chartData,
+        recentInvoices
     } = stats;
+
+    const getStatusColor = (status: string) => {
+        if (status.includes("Pending") || status.includes("Review")) return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300";
+        if (status.includes("Revision")) return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
+        return "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300";
+    };
+
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(amount);
+    };
 
     return (
         <div className="flex flex-col gap-6 p-4 md:p-6 w-full">
@@ -62,6 +78,67 @@ export function ProcurementDashboard({ stats }: { stats: any }) {
                     <CardContent>
                         <div className="text-2xl font-bold text-emerald-600">{documentsInTransit}</div>
                         <p className="text-xs text-muted-foreground mt-1">Confirmed sent by vendor</p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+                <Card className="bg-white dark:bg-slate-950 border-slate-200 shadow-sm">
+                    <CardHeader>
+                        <CardTitle>Verification Workflow (Last 7 Days)</CardTitle>
+                        <CardDescription>Volume of invoices received vs processed.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-[300px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                    <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                                    <Tooltip 
+                                        cursor={{fill: 'rgba(0,0,0,0.05)'}}
+                                        contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                                    />
+                                    <Legend iconType="circle" />
+                                    <Bar dataKey="Pending" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                                    <Bar dataKey="Processed" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="bg-white dark:bg-slate-950 border-slate-200 shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle>Invoices Needing Attention</CardTitle>
+                            <CardDescription>Recent invoices requiring initial checks.</CardDescription>
+                        </div>
+                        <Button variant="outline" size="sm" asChild>
+                            <Link href="/dashboard/invoice-hub">View All</Link>
+                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {recentInvoices && recentInvoices.length > 0 ? (
+                                recentInvoices.map((inv: any) => (
+                                    <div key={inv.id} className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 last:border-0 last:pb-0">
+                                        <div>
+                                            <p className="font-medium">{inv.invoiceNumber}</p>
+                                            <p className="text-xs text-muted-foreground">{inv.vendorName}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="font-medium text-sm">{formatCurrency(inv.totalAmount)}</div>
+                                            <Badge variant="secondary" className={`mt-1 font-normal ${getStatusColor(inv.status)}`}>
+                                                {inv.status}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-sm text-muted-foreground">No pending invoices.</p>
+                            )}
+                        </div>
                     </CardContent>
                 </Card>
             </div>
