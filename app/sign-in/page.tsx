@@ -61,7 +61,7 @@ export default function SignInPage() {
             <Card className="w-full max-w-[1000px] shadow-xl border-0 overflow-hidden flex flex-col md:flex-row bg-white dark:bg-slate-900 rounded-2xl">
                 
                 {/* Left side - Branding Area */}
-                <div className="hidden md:flex md:w-[45%] bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-400 p-10 flex-col justify-between text-white relative">
+                <div className="hidden md:flex md:w-[45%] bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-400 p-10 flex-col justify-between text-white relative rounded-t-2xl md:rounded-l-2xl md:rounded-tr-none">
                     <div className="relative z-10">
                         <Image 
                             src="/logo-chitra.png" 
@@ -165,10 +165,10 @@ export default function SignInPage() {
                     </form>
                     
                     <div className="mt-8 flex flex-col sm:flex-row gap-3">
-                        <Button asChild variant="outline" className="w-full h-11 rounded-xl border-slate-200 dark:border-slate-800 font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
+                        <Button asChild variant="outline" className="flex-1 h-11 rounded-xl border-slate-200 dark:border-slate-800 font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
                             <Link href="/register-vendor">Daftar Vendor Baru</Link>
                         </Button>
-                        <Button asChild variant="outline" className="w-full h-11 rounded-xl border-slate-200 dark:border-slate-800 font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
+                        <Button asChild variant="outline" className="flex-1 h-11 rounded-xl border-slate-200 dark:border-slate-800 font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
                             <Link href="/forgot-password">Reset Password</Link>
                         </Button>
                     </div>
