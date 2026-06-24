@@ -1,6 +1,9 @@
-import { getSuperAdminDashboardStats, getVendorDashboardStats } from "./dashboard-actions";
+import { getVendorDashboardStats } from "./dashboard-actions";
+import { getSuperAdminDashboardStats, getProcurementAdminDashboardStats, getFinanceAdminDashboardStats } from "./dashboard-role-actions";
 import { SuperAdminDashboard } from "@/components/dashboard/super-admin-dashboard";
 import { VendorDashboard } from "@/components/dashboard/vendor-dashboard";
+import { ProcurementDashboard } from "@/components/dashboard/procurement-dashboard";
+import { FinanceDashboard } from "@/components/dashboard/finance-dashboard";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -14,22 +17,34 @@ export default async function Page() {
         redirect("/sign-in");
     }
 
-    const isVendor = session.user.role === "vendor";
+    const role = session.user.role;
     
     let stats;
-    if (isVendor) {
-        stats = await getVendorDashboardStats(session.user.id);
-    } else {
-        stats = await getSuperAdminDashboardStats();
+    let DashboardComponent;
+
+    switch (role) {
+        case "vendor":
+            stats = await getVendorDashboardStats(session.user.id);
+            DashboardComponent = <VendorDashboard stats={stats} />;
+            break;
+        case "procurement":
+            stats = await getProcurementAdminDashboardStats();
+            DashboardComponent = <ProcurementDashboard stats={stats} />;
+            break;
+        case "finance":
+            stats = await getFinanceAdminDashboardStats();
+            DashboardComponent = <FinanceDashboard stats={stats} />;
+            break;
+        case "admin":
+        default:
+            stats = await getSuperAdminDashboardStats();
+            DashboardComponent = <SuperAdminDashboard stats={stats} />;
+            break;
     }
 
     return (
         <div className="@container/main flex flex-1 flex-col">
-            {isVendor ? (
-                <VendorDashboard stats={stats} />
-            ) : (
-                <SuperAdminDashboard stats={stats} />
-            )}
+            {DashboardComponent}
         </div>
     )
 }
